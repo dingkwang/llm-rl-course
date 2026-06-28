@@ -1,0 +1,8 @@
+code/
+papers/
+notes/
+references/
+.git/
+*.png
+Dockerfile
+.dockerignore

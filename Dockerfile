@@ -1,8 +1,8 @@
 FROM gh-cli
 
-# python3 for serving the lecture pages
+# python3 to serve lectures; openssh-client so git can push over SSH from inside
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 \
+    && apt-get install -y --no-install-recommends python3 openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /course

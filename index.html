@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后训练 Infra 课程计划 · LLM RL → PPO → GRPO → verl/slime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#E8EAE6;--paper2:#DEE1DB;--panel:#FBFBF9;--panel2:#F2F3EE;--ink:#17181C;--soft:#535862;--faint:#8B9097;
+    --teal:#0E7C86;--teal-d:#0A5860;--amber:#F5A300;--amber-d:#B97C00;--ok:#2F8F5B;--rule:#13141a;
+    --shadow:0 1px 0 rgba(20,22,28,.05),0 14px 34px -20px rgba(20,22,28,.4);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.58;-webkit-font-smoothing:antialiased}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--panel2);padding:1px 6px;border-radius:6px}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+  a{color:var(--teal-d)}
+
+  .hero{padding:60px 0 18px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal-d);display:inline-flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--teal)}
+  h1{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:clamp(34px,5.6vw,60px);letter-spacing:-.02em;line-height:1;margin:16px 0 10px}
+  .sub{font-size:18px;color:var(--soft);max-width:44em;margin:0 0 8px}
+
+  /* throughline strip */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:30px 0 6px}
+  .flow .f{background:var(--panel);border:1.5px solid var(--rule);border-radius:13px;padding:13px 14px;position:relative}
+  .flow .f .q{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:15px}
+  .flow .f .s{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:3px}
+  .flow .f .bar{position:absolute;top:0;left:0;right:0;height:4px;border-radius:13px 13px 0 0}
+
+  .section{padding:42px 0 0}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .sec-head h2{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:clamp(22px,3.4vw,30px);letter-spacing:-.015em;margin:0}
+  .sec-head .hint{font-size:14px;color:var(--faint)}
+
+  /* lecture cards */
+  .lectures{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  a.lec{display:block;text-decoration:none;background:var(--panel);border:1.5px solid var(--rule);border-radius:16px;padding:18px 20px;color:var(--ink);transition:transform .16s,box-shadow .16s}
+  a.lec:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .lec .n{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.12em;color:var(--faint)}
+  .lec .t{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:19px;margin:5px 0 5px}
+  .lec .d{font-size:14px;color:var(--soft)}
+  .lec .done{float:right;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ok)}
+  .lec.todo{opacity:.6;border-style:dashed;cursor:default;pointer-events:none}
+  .lec.todo .done{color:var(--faint)}
+
+  /* stage cards */
+  .stage{background:var(--panel);border:1.5px solid var(--rule);border-radius:16px;padding:20px 22px;margin-bottom:14px;position:relative;overflow:hidden}
+  .stage .barL{position:absolute;top:0;left:0;bottom:0;width:5px}
+  .stage .head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .stage .num{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;color:#fff;background:var(--rule);border-radius:8px;padding:5px 10px;line-height:1}
+  .stage h3{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:20px;margin:0}
+  .stage .st{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 9px;border-radius:20px;margin-left:auto}
+  .st-now{background:#FBEFD9;color:var(--amber-d)} .st-todo{background:var(--panel2);color:var(--faint)}
+  .stage p{font-size:14.5px;color:var(--soft);margin:10px 0 8px}
+  .stage .ans{font-size:13.5px;color:var(--ink);background:var(--panel2);border-radius:10px;padding:10px 12px}
+  .stage .ans b{color:var(--teal-d)}
+  .stage .subs{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .stage .subs a,.stage .subs span{font-family:"IBM Plex Mono",monospace;font-size:12px;text-decoration:none;border-radius:20px;padding:4px 11px;border:1px solid var(--track,#C4CAC8)}
+  .subs a{background:#EAF5EE;border-color:var(--ok);color:#1f6b46}
+  .subs .x{background:var(--panel2);color:var(--faint)}
+
+  footer{margin-top:46px;border-top:1.5px solid var(--rule);padding:20px 0 50px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--faint)}
+  footer a{color:var(--teal-d)}
+  @media(max-width:760px){.flow{grid-template-columns:1fr 1fr}.lectures{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">后训练 Infra 工程师 · 课程计划</span>
+    <h1>LLM RL → PPO → GRPO<br>→ verl / slime</h1>
+    <p class="sub">用系统工程师视角解剖算法:写任何系统代码前,先知道集群里塞几个模型、数据怎么流。结论都锚定论文 / 书 / 代码原文。</p>
+    <div class="flow">
+      <div class="f"><div class="bar" style="background:var(--amber)"></div><div class="q">为什么训</div><div class="s">算法 · 阶段一</div></div>
+      <div class="f"><div class="bar" style="background:var(--teal)"></div><div class="q">怎么算得分</div><div class="s">Eval Infra · 阶段二</div></div>
+      <div class="f"><div class="bar" style="background:#5566C9"></div><div class="q">怎么算得快</div><div class="s">Megatron · 阶段三</div></div>
+      <div class="f"><div class="bar" style="background:var(--rule)"></div><div class="q">怎么拼一起</div><div class="s">Ray/Slime · 阶段四</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- published lectures -->
+<section class="section">
+  <div class="wrap">
+    <div class="sec-head"><h2>已发布讲义</h2><span class="hint">阶段一·概念地基(corridor 微课)· 每页含交互自测</span></div>
+    <div class="lectures">
+      <a class="lec" href="lecture_L0_L1.html"><span class="done">✓ 已出</span><div class="n">L0 · L1</div><div class="t">世界观 + 回报 G</div><div class="d">MDP / 马尔可夫 / state·action·reward / 折扣 γ / 概率记号(| 与 ,)· 10 题自测</div></a>
+      <a class="lec" href="lecture_L2.html"><span class="done">✓ 已出</span><div class="n">L2</div><div class="t">策略 π · 价值 V · 动作价值 Q</div><div class="d">V=E[G|s] / Q=E[G|s,a] / 桥 V=Σπ·Q(Bellman 期望方程)· 7 题自测</div></a>
+      <a class="lec" href="lecture_L3.html"><span class="done">✓ 已出</span><div class="n">L3</div><div class="t">优势 A + 策略梯度</div><div class="d">A=Q−V / 期望为 0 / TD 误差 δ / ∇J=E[∇logπ·A] / 对照 cleanrl 代码 · 7 题自测</div></a>
+      <span class="lec todo"><span class="done">○ 下一站</span><div class="n">L4 · L5</div><div class="t">PPO 系统视角 → GRPO</div><div class="d">4 模型/ratio/clip/KL/显存 → 组内 baseline、去 critic、采样吞吐瓶颈</div></span>
+    </div>
+  </div>
+</section>
+
+<!-- full roadmap -->
+<section class="section">
+  <div class="wrap">
+    <div class="sec-head"><h2>全程路线 · 4 阶段能力图谱</h2></div>
+
+    <div class="stage"><div class="barL" style="background:var(--amber)"></div>
+      <div class="head"><span class="num">一</span><h3>算法直觉与数据流</h3><span class="st st-now">进行中</span></div>
+      <p>PPO / GRPO,系统视角:集群里塞几个模型?数据怎么流?(概念地基 = 上面的 corridor 微课)</p>
+      <div class="ans"><b>学完能答:</b>PPO 为什么显存大(4 模型:Actor/Critic/Ref/Reward)· 模型数 4→3→2 · GRPO 对 infra 的挑战(采样吞吐爆炸)</div>
+      <div class="subs">
+        <a href="lecture_L0_L1.html">L0·L1 ✓</a><a href="lecture_L2.html">L2 ✓</a><a href="lecture_L3.html">L3 ✓</a>
+        <span class="x">L4 PPO ○</span><span class="x">L5 GRPO ○</span>
+      </div>
+    </div>
+
+    <div class="stage"><div class="barL" style="background:var(--teal)"></div>
+      <div class="head"><span class="num">二</span><h3>评测基建与环境反馈 (Agent Eval Infra)</h3><span class="st st-todo">规划</span></div>
+      <p>三层:考题(SWE-bench/OSWorld)→ 调度编排(Inspect / Harbor)→ 执行沙盒(E2B/Firecracker 微虚机)。把 Agent 执行转成 Reward。</p>
+      <div class="ans"><b>学完能答:</b>为什么不用官方 runner · 一分钟并发千沙盒怎么做(快照恢复)· Eval 怎么变 RL reward · Inspect vs Harbor</div>
+    </div>
+
+    <div class="stage"><div class="barL" style="background:#5566C9"></div>
+      <div class="head"><span class="num">三</span><h3>分布式底盘与显存 (Megatron / ZeRO)</h3><span class="st st-todo">规划</span></div>
+      <p>纯 ML Infra 基本功:NCCL 通信原语、ZeRO 切分、3D 并行(TP/PP)、流水线气泡、激活重计算。</p>
+      <div class="ans"><b>学完能答:</b>ZeRO 1/2/3 切什么 · 16 字节/参数怎么来 · TP/PP/DP 切什么 · bubble 及解法</div>
+    </div>
+
+    <div class="stage"><div class="barL" style="background:var(--rule)"></div>
+      <div class="head"><span class="num">四</span><h3>巅峰缝合:训练与推理的交响乐 (Ray / Slime)</h3><span class="st st-todo">规划</span></div>
+      <p>把前三阶段在物理集群串起来:Ray 异构调度 + Plasma 零拷贝;Slime 同机显存时分复用(SGLang + Megatron),每步权重同步。</p>
+      <div class="ans"><b>学完能答:</b>colocate vs disaggregate · 权重同步为什么是命门 · Slime 怎么复用显存 · verl vs Slime · 为什么 RL 是 generation-bound</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    主线一句话:为什么训(算法) → 怎么算得分(Eval Infra) → 怎么算得快(Megatron) → 怎么拼一起(Ray/Slime)<br>
+    源 · 教材 Sutton &amp; Barto + PPO/GAE/InstructGPT/DeepSeekMath/R1/ZeRO/Megatron/verl 论文 · 代码 cleanrl/harbor/slime ·
+    repo <a href="https://github.com/dingkwang/llm-rl-course">github.com/dingkwang/llm-rl-course</a>
+  </div>
+</footer>
+</body>
+</html>

@@ -197,8 +197,17 @@
 <section class="section" id="td">
   <div class="wrap">
     <div class="sec-head reveal"><span class="sec-tag">②</span><h2>实践中怎么估 A:TD 误差 δ</h2>
-      <p><b>承上:① 给的 A=Q−V 只是「定义」,不等于「能算」。</b>要得出一个具体的 A,得有 Q 和 V 的数值——麻烦正出在 Q 上:<b>真实 Q 拿不到。</b> 为什么?Q(s,a)=E[G│s,a] 是对「<b>所有可能的未来</b>」取的期望(平均)——未来轨迹无穷多、环境/策略都带随机;你既<b>没有环境模型</b>(model-free),也不可能把每条未来都跑一遍,所以只看得到<b>有限采样</b>,真值拿不到 → 只能估。(LLM 里更直接:一个 prompt 的后续续写有天文数字种,你只采几条。)那 V 呢?<b>V 也得估,但比 Q 省得多</b>——V 只依赖状态 s(不依赖动作),是个更小的函数,可由一个 <b>critic</b> 网络从数据里学出近似 <code>V̂</code>。<b>关键技巧:有了 V,不碰 Q 也能估 A。</b>走一步、看到真实奖励 r,<code>r+γV(s′)</code> 比 <code>V(s)</code> 更准;两者之差就是 <b>TD 误差 δ</b>,而 δ 恰好是一步 advantage 的估计——<b>为什么相等?下面「TD 是什么」+ 公式 E[δ]=Q−V=A 拆给你看。</b></p></div>
+      <p><b>承上:① 给的 A=Q−V 只是「定义」,不等于「能算」</b>——要得出具体的 A 得有 Q、V 的数值,而<b>真实 Q 拿不到</b>。于是退一步:用 V 来估 A。下面三步拆。</p></div>
     <div class="src reveal"><span>📖 <b>S&amp;B</b> §11.1 p.258(actor-critic δ)</span><span>📄 <b>GAE</b> 式(10)</span></div>
+
+    <div class="panel reveal" style="border-left:5px solid var(--amber)">
+      <div class="kq">从「Q 拿不到」到「用 δ 估 A」· 三步</div>
+      <div class="vs" style="grid-template-columns:1fr; margin-top:12px">
+        <div><b>① 为什么真实 Q 拿不到</b><code>Q(s,a)=E[G│s,a]</code> 是对「所有可能的未来」取的期望——未来无穷多、环境/策略带随机;你既没有环境模型(model-free)、也跑不完每条未来,只看得到有限采样 → 只能估。(LLM 里更直接:一个 prompt 的续写有天文数字种,你只采几条。)</div>
+        <div><b>② 那 V 呢?V 也估,但便宜得多</b>V 只依赖状态 s(不依赖动作),是个更小的函数,可由一个 <b>critic</b> 网络从数据里学出近似 <code>V̂</code>。</div>
+        <div><b>③ 关键技巧:有了 V,不碰 Q 也能估 A</b>走一步、看到真实奖励 r,<code>r+γV(s′)</code> 比 <code>V(s)</code> 更准;两者之差就是 <b>TD 误差 δ</b>,而 δ 恰好是一步 advantage 的估计。<b>为什么相等?↓ 下面拆。</b></div>
+      </div>
+    </div>
 
     <div class="panel reveal" style="border-left:5px solid var(--teal)">
       <div class="kq">TD 是什么 · Temporal Difference 时序差分</div>

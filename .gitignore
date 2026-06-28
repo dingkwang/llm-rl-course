@@ -3,3 +3,6 @@ papers/*.pdf
 notes/
 *.png
 .dockerignore
+.vercel
+.vercel/
+.env
