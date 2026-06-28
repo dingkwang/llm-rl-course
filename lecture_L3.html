@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>优势与策略梯度 · L3 · 课程笔记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E8EAE6; --paper-2:#DEE1DB; --panel:#FBFBF9; --panel-2:#F2F3EE;
+    --ink:#17181C; --soft:#535862; --faint:#8B9097;
+    --teal:#0E7C86; --teal-d:#0A5860; --amber:#F5A300; --amber-d:#B97C00;
+    --red:#C73E1D; --track:#C4CAC8; --ok:#2F8F5B; --ok-bg:#EAF5EE; --no:#C73E1D; --no-bg:#FBEBE7;
+    --rule:#13141a;
+    --shadow:0 1px 0 rgba(20,22,28,.05), 0 14px 34px -20px rgba(20,22,28,.38);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  code{font-family:"IBM Plex Mono",monospace; font-size:.9em; background:var(--panel-2); padding:1px 6px; border-radius:6px}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 24px}
+
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--teal-d); display:inline-flex; align-items:center; gap:10px}
+  .eyebrow::before{content:""; width:26px; height:2px; background:var(--teal)}
+
+  .hero{padding:60px 0 28px}
+  .hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:40px; align-items:center}
+  h1{font-family:"Space Grotesk",sans-serif; font-weight:700; line-height:.98; font-size:clamp(40px,6.4vw,74px);
+    letter-spacing:-.02em; margin:16px 0 6px}
+  .hero .sub{font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:clamp(16px,2vw,20px);
+    color:var(--soft); margin-bottom:20px}
+  .hero .sub b{color:var(--teal-d); font-weight:600}
+  .thesis{font-size:17px; color:var(--ink); max-width:32em}
+  .thesis .hl{background:linear-gradient(transparent 62%, #F5A30055 62%); padding:0 2px}
+
+  .card-svg{background:var(--panel); border:1.5px solid var(--rule); border-radius:18px; padding:20px 20px 14px; box-shadow:var(--shadow)}
+  .card-svg .cap{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:6px}
+  svg{display:block; width:100%; height:auto}
+  .veq{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(14px,1.9vw,17px); text-align:center; margin-top:12px}
+  .veq .g{color:var(--ok)} .veq .r{color:var(--red)}
+
+  .section{padding:48px 0 0}
+  .sec-head{display:flex; align-items:flex-end; gap:16px; margin-bottom:8px; flex-wrap:wrap}
+  .sec-tag{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; color:#fff;
+    background:var(--rule); border-radius:11px; padding:7px 13px; line-height:1}
+  .sec-head h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(24px,3.6vw,34px); letter-spacing:-.018em; margin:0}
+  .sec-head p{margin:6px 0 0; color:var(--soft); font-size:16px; flex-basis:100%; max-width:48em}
+
+  /* 素材锚点 chip (铁律) */
+  .src{display:inline-flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px}
+  .src span{font-family:"IBM Plex Mono",monospace; font-size:11.5px; background:var(--panel-2); border:1px solid var(--track);
+    border-radius:20px; padding:3px 10px; color:var(--soft)}
+  .src span b{color:var(--teal-d); font-weight:500}
+
+  .panel{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:22px 20px; margin-top:4px}
+  .panel h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:19px; margin:0 0 4px}
+  .panel p{font-size:15px; color:var(--soft); margin:10px 0}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px}
+  .accent-l{border-left:5px solid var(--teal)} .accent-a{border-left:5px solid var(--amber)}
+  .vs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+  .vs > div{background:var(--panel-2); border-radius:11px; padding:12px 13px; font-size:14px}
+  .vs b:first-child{display:block; font-family:"Space Grotesk",sans-serif; font-size:15px; margin-bottom:3px; color:var(--ink)}
+
+  .formula{background:var(--rule); color:#fff; border-radius:18px; padding:28px 24px; margin:14px 0; text-align:center}
+  .formula .big{font-family:"IBM Plex Mono",monospace; font-size:clamp(17px,3vw,27px); line-height:1.5}
+  .formula .big .g{color:#62c98c} .formula .big .r{color:#ff9d7a} .formula .big .a{color:var(--amber)}
+  .formula .rec{margin-top:12px; font-family:"IBM Plex Mono",monospace; font-size:14.5px; color:#C8CDD4}
+  .formula .rec b{color:var(--amber)}
+
+  .quote{background:var(--panel); border:1.5px solid var(--rule); border-left:5px solid var(--amber); border-radius:0 14px 14px 0;
+    padding:16px 18px; margin-top:4px; font-size:15px}
+  .quote .en{font-style:italic; color:var(--ink)}
+  .quote .who{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--faint); margin-top:8px}
+
+  /* code block */
+  .code{background:#1b1d23; color:#e8eae6; border-radius:14px; padding:18px 20px; margin-top:4px; overflow-x:auto;
+    font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.7; box-shadow:var(--shadow)}
+  .code .ln{color:#6b7178; user-select:none}
+  .code .cm{color:#7f8794}
+  .code .hl{color:var(--amber)}
+  .code .gn{color:#62c98c}
+
+  .insight{margin-top:14px; font-size:15px; background:#fff; border-left:5px solid var(--amber); border-radius:0 12px 12px 0; padding:14px 16px}
+  .insight b{color:var(--amber-d)}
+
+  .next{display:grid; grid-template-columns:repeat(4,1fr); gap:13px; margin-top:6px}
+  .nstep{background:var(--panel); border:1.5px solid var(--rule); border-radius:14px; padding:16px}
+  .nstep .t{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.12em; color:var(--faint)}
+  .nstep .f{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:17px; margin:5px 0}
+  .nstep p{margin:0; font-size:13.5px; color:var(--soft)}
+
+  footer{margin-top:50px; border-top:1.5px solid var(--rule); padding:20px 0 46px}
+  footer .wrap{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--faint)}
+
+  /* quiz */
+  .q{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:20px 20px 18px; margin-bottom:14px}
+  .q-head{display:flex; gap:12px; align-items:baseline; margin-bottom:14px; flex-wrap:wrap}
+  .q-num{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:13px; color:#fff; background:var(--rule); border-radius:8px; padding:5px 9px; flex:none}
+  .q-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; color:var(--faint); align-self:center}
+  .q-text{font-size:16px; font-weight:500; flex:1 1 100%}
+  .opts{display:grid; gap:9px}
+  .opt{text-align:left; font-size:15px; background:var(--panel-2); border:1.5px solid var(--track); border-radius:10px;
+    padding:11px 14px; cursor:pointer; transition:all .15s; display:flex; justify-content:space-between; gap:12px; width:100%; color:var(--ink)}
+  .opt:hover:not(.locked){border-color:var(--ink); transform:translateX(3px)}
+  .opt .mark{font-family:"Space Grotesk",sans-serif; font-weight:700; flex:none}
+  .opt.locked{cursor:default}
+  .opt.ok{border-color:var(--ok); background:var(--ok-bg)} .opt.ok .mark{color:var(--ok)} .opt.ok .mark::after{content:"✓"}
+  .opt.no{border-color:var(--no); background:var(--no-bg)} .opt.no .mark{color:var(--no)} .opt.no .mark::after{content:"✗"}
+  .explain{display:none; margin-top:13px; font-size:14.5px; color:var(--soft); background:var(--panel-2);
+    border-left:5px solid var(--amber); border-radius:0 11px 11px 0; padding:12px 14px}
+  .explain.show{display:block} .explain b{color:var(--amber-d)}
+  .reveal-btn{font-family:"IBM Plex Mono",monospace; font-size:13px; background:var(--rule); color:#fff; border:none;
+    border-radius:9px; padding:10px 15px; cursor:pointer}
+  .reveal-btn:hover{background:var(--teal-d)}
+  .ans{display:none; margin-top:14px} .ans.show{display:block}
+
+  .js .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s, transform .6s}
+  .js .reveal.in{opacity:1; transform:none}
+  @media(max-width:860px){ .hero .wrap{grid-template-columns:1fr; gap:26px} .grid2,.vs,.next{grid-template-columns:1fr} .next{grid-template-columns:1fr 1fr} }
+  @media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} .js .reveal{opacity:1; transform:none; transition:none} }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">LLM RL · 课程笔记 03</span>
+      <h1>优势 与<br>策略梯度</h1>
+      <div class="sub"><b>L3</b> 优势 A(advantage)= Q − V　·　∇J = E[∇logπ · A]</div>
+      <p class="thesis"><span class="hl">优势 A(advantage)告诉策略:这个动作比平均好多少;策略梯度照着 A 推 π</span>——好动作概率抬上去,差动作压下去。这一步跨过去,就摸到 PPO 的门了。</p>
+    </div>
+    <div class="card-svg">
+      <div class="cap">Figure · advantage 推动 policy</div>
+      <svg viewBox="0 0 440 220" role="img" aria-label="优势的正负把动作概率往上或往下推">
+        <defs>
+          <marker id="up" markerWidth="9" markerHeight="9" refX="3" refY="6" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="#2F8F5B"/></marker>
+          <marker id="dn" markerWidth="9" markerHeight="9" refX="3" refY="0" orient="auto"><path d="M0,0 L3,6 L6,0 Z" fill="#C73E1D"/></marker>
+        </defs>
+        <circle cx="54" cy="110" r="26" fill="#F2F3EE" stroke="#0E7C86" stroke-width="5"/>
+        <text x="54" y="118" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="22" fill="#0A5860">s</text>
+        <!-- a1 good -->
+        <path d="M81,98 L250,52" fill="none" stroke="#0E7C86" stroke-width="2.4"/>
+        <rect x="252" y="30" width="170" height="46" rx="11" fill="#EAF5EE" stroke="#2F8F5B" stroke-width="2"/>
+        <text x="337" y="50" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="14" fill="#1f6b46">a₁  A=+1.5</text>
+        <text x="337" y="67" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#2F8F5B">↑ 概率抬高</text>
+        <path d="M398,84 L398,70" stroke="#2F8F5B" stroke-width="3" marker-end="url(#up)"/>
+        <!-- a2 bad -->
+        <path d="M81,122 L250,170" fill="none" stroke="#0E7C86" stroke-width="2.4"/>
+        <rect x="252" y="150" width="170" height="46" rx="11" fill="#FBEBE7" stroke="#C73E1D" stroke-width="2"/>
+        <text x="337" y="170" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="14" fill="#9e3015">a₂  A=−3.5</text>
+        <text x="337" y="187" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#C73E1D">↓ 概率压低</text>
+        <path d="M398,142 L398,156" stroke="#C73E1D" stroke-width="3" marker-end="url(#dn)"/>
+      </svg>
+      <div class="veq">梯度方向 = <span class="mono">∇logπ(a│s) · A(s,a)</span>　→　<span class="g">A&gt;0 抬</span> / <span class="r">A&lt;0 压</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ① advantage -->
+<section class="section" id="adv">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">①</span><h2>优势 A = Q − V</h2>
+      <p>Q 是「这个动作的好」,V 是「这个状态所有动作的平均好」。相减 = 这个动作<b>比平均超出多少</b>。</p></div>
+    <div class="src reveal"><span>📄 <b>GAE</b> 论文 p.2(A=Q−V 定义)</span><span>📖 <b>S&amp;B</b> 接 L2 的桥 V=Σπ·Q</span></div>
+
+    <div class="quote reveal">
+      <span class="en">"The advantage function, by its definition A^π(s,a) = Q^π(s,a) − V^π(s), measures whether or not the action is better or worse than the policy's default behavior."</span>
+      <div class="who">— Schulman et al., GAE (ICLR 2016), p.2</div>
+    </div>
+
+    <div class="formula reveal">
+      <div class="big">A<sup>π</sup>(s,a) = <span class="a">Q<sup>π</sup>(s,a)</span> − <span class="a">V<sup>π</sup>(s)</span></div>
+      <div class="rec">接 L2 例子:Q(a₁)=8, Q(a₂)=3, V=6.5 → <b>A(a₁)=+1.5</b>,<b>A(a₂)=−3.5</b></div>
+    </div>
+
+    <div class="panel accent-l reveal">
+      <h3>A 的期望为 0:它本就是「相对平均」的量</h3>
+      <p><b>这不是新性质,是定义的直接推论。</b>V 就是 Q 在 π 下的平均(L2 桥 <code>V=Σ_a π(a│s)Q(s,a)</code>);A=Q−V=「比平均高多少」——任何「偏离平均」的量,平均自然为 0(像考试分减班级平均分)。所以从「定义 A」到「期望为 0」<b>不是跳步</b>,是同一句话。</p>
+      <p>精确写:<code>E_{a~π(·│s)}[Aπ(s,a)] = E[Q] − V = V − V = 0</code><br><span style="font-size:13px; color:var(--faint)">↑ 是「固定状态 s、动作 a 按 π 采样」的期望,对每个 s 都成立;不是对所有 (s,a) 均匀平均。「零均值」是它的口语说法。</span></p>
+      <div class="vs">
+        <div><b>验证(L2 的数)</b>0.7×(+1.5) + 0.3×(−3.5) = 1.05 − 1.05 = <b>0</b> ✓</div>
+        <div><b>为什么要看它</b>A = 「Q 减基线 V」。期望为 0 ⇒ 减基线<b>不引入偏差</b>;居中于 0 ⇒ 数值小、<b>方差小、训练稳</b>。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ② TD error = advantage estimate -->
+<section class="section" id="td">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">②</span><h2>实践中怎么估 A:TD 误差 δ</h2>
+      <p><b>承上:① 给的 A=Q−V 只是「定义」,不等于「能算」。</b>要得出一个具体的 A,得有 Q 和 V 的数值——麻烦正出在 Q 上:<b>真实 Q 拿不到。</b> 为什么?Q(s,a)=E[G│s,a] 是对「<b>所有可能的未来</b>」取的期望(平均)——未来轨迹无穷多、环境/策略都带随机;你既<b>没有环境模型</b>(model-free),也不可能把每条未来都跑一遍,所以只看得到<b>有限采样</b>,真值拿不到 → 只能估。(LLM 里更直接:一个 prompt 的后续续写有天文数字种,你只采几条。)那 V 呢?<b>V 也得估,但比 Q 省得多</b>——V 只依赖状态 s(不依赖动作),是个更小的函数,可由一个 <b>critic</b> 网络从数据里学出近似 <code>V̂</code>。<b>关键技巧:有了 V,不碰 Q 也能估 A。</b>走一步、看到真实奖励 r,<code>r+γV(s′)</code> 比 <code>V(s)</code> 更准;两者之差就是 <b>TD 误差 δ</b>,而 δ 恰好是一步 advantage 的估计——<b>为什么相等?下面「TD 是什么」+ 公式 E[δ]=Q−V=A 拆给你看。</b></p></div>
+    <div class="src reveal"><span>📖 <b>S&amp;B</b> §11.1 p.258(actor-critic δ)</span><span>📄 <b>GAE</b> 式(10)</span></div>
+
+    <div class="panel reveal" style="border-left:5px solid var(--teal)">
+      <div class="kq">TD 是什么 · Temporal Difference 时序差分</div>
+      <p style="margin-top:8px"><b>Temporal(相邻时刻)+ Difference(两个估计之差)</b>:用「走一步后的更好估计」回头纠正「走之前的估计」。δ 就是这两个估计相减。</p>
+      <div class="vs">
+        <div><b>旧估计</b>V(sₜ)——走之前对价值的猜测</div>
+        <div><b>新估计 = TD target</b>rₜ + γV(sₜ₊₁)——看到真实 r 和下一格后的更好猜测</div>
+      </div>
+      <p style="margin-top:10px"><code>δ = 新估计 − 旧估计</code> = 旧猜测错了多少。核心是 <b>bootstrapping</b>:不等结局、走一步就用「自己下一步的估计」更新;对比<b>蒙特卡洛</b>要等整局结束用真实回报 G(无偏但慢、方差大)。</p>
+      <p style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--faint); margin-top:8px">📖 TD 学习是 Sutton 1988 的奠基贡献;δ 公式见 S&amp;B §11.1 p.258</p>
+    </div>
+
+    <div class="formula reveal">
+      <div class="big">δ<sub style="font-size:.55em">t</sub> = r<sub style="font-size:.55em">t</sub> + γV(s<sub style="font-size:.55em">t+1</sub>) − V(s<sub style="font-size:.55em">t</sub>)</div>
+      <div class="rec">V 准确时,<b>E[δ] = Q − V = A</b>(GAE 式 10)</div>
+    </div>
+
+    <div class="grid2">
+      <div class="quote reveal" style="margin-top:0">
+        <span class="en">"If the TD error is positive, it suggests that the tendency to select Aₜ should be strengthened for the future, whereas if the TD error is negative, it suggests the tendency should be weakened."</span>
+        <div class="who">— Sutton &amp; Barto, §11.1 actor–critic, p.258</div>
+      </div>
+      <div class="panel accent-a reveal" style="margin-top:0">
+        <h3>δ 的直觉</h3>
+        <p><b>δ&gt;0</b>:这一步比预期好(actor 把这个动作概率抬高);<b>δ&lt;0</b>:比预期差(压低)。这正是 advantage 的符号。</p>
+        <p>critic 学 V,actor 用 δ 调 π —— 这就是 <b>actor-critic</b>,也是 PPO 里 Critic 的活。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ③ policy gradient -->
+<section class="section" id="pg">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">③</span><h2>策略梯度:照着 A 推 π</h2>
+      <p>把 A 当权重,乘上 <code>∇logπ</code>,就是更新策略的梯度。一句话:<b>好动作概率抬高,差动作压低</b>。</p></div>
+    <div class="src reveal"><span>📄 <b>GAE</b> 式(9) p.3</span><span>📄 <b>Sutton-PG-1999</b>(策略梯度定理来源)</span></div>
+
+    <div class="formula reveal">
+      <div class="big">ĝ = E[ <span class="a">Â(s,a)</span> · ∇<sub style="font-size:.55em">θ</sub> log π<sub style="font-size:.55em">θ</sub>(a│s) ]</div>
+      <div class="rec">A&gt;0 → 把 logπ(a│s) 往上推(<span style="color:#62c98c">多做</span>);A&lt;0 → 往下推(<span style="color:#ff9d7a">少做</span>)</div>
+    </div>
+
+    <div class="quote reveal">
+      <span class="en">"a step in the policy gradient direction should increase the probability of better-than-average actions and decrease the probability of worse-than-average actions. ... The choice Ψₜ = A^π(sₜ,aₜ) yields almost the lowest possible variance."</span>
+      <div class="who">— Schulman et al., GAE (ICLR 2016), p.2</div>
+    </div>
+
+    <div class="insight reveal"><b>为什么用 A 不用 raw return / Q?</b> 用 Q,高价值状态里所有动作权重都大 → 噪声大;减掉基线 V 变成 A(零均值)→ 只奖励「超出平均」的动作 → <b>方差小、训练稳</b>。这就是 baseline 的全部意义,也是 actor-critic / PPO / GRPO 的共同地基。</div>
+  </div>
+</section>
+
+<!-- ④ in code -->
+<section class="section" id="code">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">④</span><h2>落到代码:cleanrl 里就这几行</h2>
+      <p>上面的 δ、GAE、A·∇logπ,在真实 PPO 实现里是连续几行。先认 advantage 那段。</p></div>
+    <div class="src reveal"><span>💻 <b>cleanrl/ppo.py:229–231</b>(GAE)</span><span>💻 <b>:251–252, 265–267</b>(A→loss)</span></div>
+
+    <div class="code reveal">
+<span class="cm"># --- GAE:把 δ 累成 advantage(ppo.py:229–231)---</span><br>
+<span class="ln">229</span>  delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]   <span class="cm"># ← δ = r+γV(s')−V(s)</span><br>
+<span class="ln">230</span>  advantages[t] = lastgaelam = delta + gamma * <span class="hl">gae_lambda</span> * nextnonterminal * lastgaelam  <span class="cm"># ← GAE(λ) 递推</span><br>
+<span class="ln">231</span>  returns = advantages + values                                          <span class="cm"># ← target for critic</span><br>
+<br>
+<span class="cm"># --- advantage 当权重,推 logπ(ppo.py:251–267)---</span><br>
+<span class="ln">251</span>  logratio = newlogprob - b_logprobs[mb_inds]<br>
+<span class="ln">252</span>  ratio = logratio.exp()                         <span class="cm"># ← π_new/π_old(PPO 的 ratio,下一课 L4)</span><br>
+<span class="ln">265</span>  pg_loss1 = <span class="gn">-mb_advantages</span> * ratio          <span class="cm"># ← −A·(π_new/π_old),核心就是 A·∇logπ</span><br>
+<span class="ln">266</span>  pg_loss2 = -mb_advantages * clamp(ratio, 1−ε, 1+ε)  <span class="cm"># ← clip(L4)</span><br>
+<span class="ln">267</span>  pg_loss = max(pg_loss1, pg_loss2).mean()
+    </div>
+    <div class="insight reveal">L3 你只要认住 <b>229–231(把 δ 累成 A)</b> 和 <b>265(−A·ratio,本质是 A·∇logπ)</b>。<code>ratio</code> / <code>clip</code>(252/266)是 PPO 的加料,下一课 L4 专讲。</div>
+  </div>
+</section>
+
+<!-- ⑤ GAE λ knob -->
+<section class="section" id="gae">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">⑤</span><h2>GAE(λ):偏差 / 方差的旋钮</h2>
+      <p>把多步 δ 按 (γλ) 衰减加起来,用一个 λ 在「低方差但有偏」和「无偏但高方差」之间调。</p></div>
+    <div class="src reveal"><span>📄 <b>GAE</b> 式(11)–(16),λ 定义</span><span>💻 <b>cleanrl/ppo.py:230</b>(gae_lambda)</span></div>
+    <div class="formula reveal">
+      <div class="big">Â<sup style="font-size:.6em">GAE</sup><sub style="font-size:.55em">t</sub> = Σ<sub style="font-size:.55em">l≥0</sub> (γλ)<sup style="font-size:.6em">l</sup> δ<sub style="font-size:.55em">t+l</sub></div>
+      <div class="rec"><b>λ=0</b> → Â=δ(一步,低方差/有偏)　|　<b>λ=1</b> → Â=Σγ^l r − V(蒙特卡洛,无偏/高方差)</div>
+    </div>
+    <div class="insight reveal">cleanrl 默认 <code>gae_lambda=0.95</code>(ppo.py:51)——靠近 1 偏向低偏差,但留一点方差控制。<b>λ 就是 advantage 估计的"看多远"旋钮。</b></div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section class="section" id="quiz">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">Q</span><h2>随堂自测</h2>
+      <p>点选项即时判对错。沿用 L2 的数:Q(a₁)=8, Q(a₂)=3, π=0.7/0.3, V=6.5。</p></div>
+    <div class="reveal">
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q1</span><span class="q-tag">advantage</span><span class="q-text"><code>A(a₂)</code> = ?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>+3</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>−3.5</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>3</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">A = Q − V = 3 − 6.5 = <b>−3.5</b>。负 → 比平均差 → 该压低概率。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q2</span><span class="q-tag">零均值</span><span class="q-text"><code>E_{a~π}[A]</code> 等于多少?为什么有用?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="true"><span>0 —— 减掉基线 V,降方差</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>V —— 状态价值</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>1 —— 概率和</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">由桥 V=Σπ·Q 推出 E[A]=V−V=<b>0</b>。零均值 = 只留「相对好坏」,当梯度权重方差更小。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q3</span><span class="q-tag">TD 误差</span><span class="q-text"><code>δ = r + γV(s′) − V(s)</code> 是什么的估计?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>状态价值 V</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>一步 advantage A(s,a)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>策略 π</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">GAE 式(10):V 准确时 E[δ]=Q−V=A。δ&gt;0 抬概率,δ&lt;0 压——actor-critic 的核心信号。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q4</span><span class="q-tag">策略梯度</span><span class="q-text">梯度 <code>∇J = E[∇logπ · A]</code> 里,A&gt;0 时对该动作做什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="true"><span>抬高它的概率(多做)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>压低它的概率</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">A&gt;0 → 把 logπ(a│s) 往上推 → 该动作更可能被选。GAE p.2 原话:increase prob of better-than-average actions。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q5</span><span class="q-tag">为什么用 A</span><span class="q-text">PPO 为什么用 advantage 当权重,而不用 raw return / Q?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>A 算起来更快</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>减掉基线 V → 零均值 → 方差小、训练稳</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>Q 会改变期望梯度</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">baseline 不改期望梯度但降方差。这是 actor-critic / PPO / GRPO 共同地基。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q6</span><span class="q-tag">GAE λ</span><span class="q-text"><code>λ=0</code> 时 GAE 退化成什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="true"><span>单步 TD 误差 δ(低方差/有偏)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>蒙特卡洛回报(无偏/高方差)</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">Â=Σ(γλ)^l δ;λ=0 只剩 δ_t;λ=1 才是蒙特卡洛。λ 是偏差/方差旋钮。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q7</span><span class="q-tag">代码</span><span class="q-text"><code>cleanrl/ppo.py:229</code> 那行算的是?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>策略损失</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>TD 误差 δ = r+γV(s′)−V(s)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>ratio = π_new/π_old</span><span class="mark"></span></button>
+        </div>
+        <div class="explain"><code>delta = rewards[t] + gamma*nextvalues*nextnonterminal - values[t]</code> = δ;下一行 230 把它累成 GAE advantage。</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- NEXT -->
+<section class="section" id="next">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="sec-tag">↳</span><h2>下一站 · L4 PPO 系统视角</h2>
+      <p>你已经有了 A·∇logπ 这个核心信号。L4 给它加两样东西,变成 PPO。</p></div>
+    <div class="next reveal">
+      <div class="nstep"><div class="t">RATIO</div><div class="f">π_new/π_old</div><p>数据复用 K 轮 → 重要性修正(ppo.py:252)。</p></div>
+      <div class="nstep"><div class="t">CLIP</div><div class="f">clip(r,1±ε)</div><p>步子别太大(ppo.py:266)。</p></div>
+      <div class="nstep"><div class="t">4 MODELS</div><div class="f">A/C/Ref/Rw</div><p>4 模型共存 → 显存为什么大。</p></div>
+      <div class="nstep"><div class="t">KL</div><div class="f">→reference</div><p>别漂离 SFT(RLHF)。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>course · LLM RL → PPO → GRPO → verl/slime</span>
+    <span>素材 · GAE(ICLR'16) · S&amp;B §11.1 · cleanrl/ppo.py</span>
+    <span>本页 · L3 优势 A + 策略梯度</span>
+  </div>
+</footer>
+
+<script>
+  document.documentElement.classList.add('js');
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.1});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  document.querySelectorAll('.q .opt').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const q=btn.closest('.q'); if(q.classList.contains('answered'))return;
+      q.classList.add('answered');
+      q.querySelectorAll('.opt').forEach(o=>{o.classList.add('locked'); if(o.dataset.correct==='true')o.classList.add('ok');});
+      if(btn.dataset.correct!=='true')btn.classList.add('no');
+      const ex=q.querySelector('.explain'); if(ex)ex.classList.add('show');
+    });
+  });
+  document.querySelectorAll('.reveal-btn').forEach(b=>{
+    b.addEventListener('click',()=>{const a=b.nextElementSibling; a.classList.toggle('show'); b.textContent=a.classList.contains('show')?'收起 ▾':'看答案 ▸';});
+  });
+</script>
+</body>
+</html>

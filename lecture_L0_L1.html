@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>最小 RL 语言 · L0–L1 · 课程笔记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E8EAE6; --paper-2:#DEE1DB; --panel:#FBFBF9; --panel-2:#F2F3EE;
+    --ink:#17181C; --ink-soft:#535862; --ink-faint:#8B9097;
+    --teal:#0E7C86; --teal-d:#0A5860; --amber:#F5A300; --amber-d:#B97C00;
+    --red:#C73E1D; --track:#C4CAC8; --ok:#2F8F5B; --ok-bg:#EAF5EE; --no:#C73E1D; --no-bg:#FBEBE7;
+    --rule:#13141a;
+    --shadow:0 1px 0 rgba(20,22,28,.06), 0 12px 30px -18px rgba(20,22,28,.4);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:17px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"IBM Plex Mono",monospace}
+  code{font-family:"IBM Plex Mono",monospace; font-size:.92em; background:var(--panel-2); padding:1px 6px; border-radius:6px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 26px}
+
+  /* ---------- station-code eyebrow ---------- */
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--teal-d); font-weight:500;
+    display:inline-flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:""; width:26px; height:2px; background:var(--teal)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:64px 0 30px; position:relative; overflow:hidden}
+  .hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:40px; align-items:center}
+  h1{
+    font-family:"Space Grotesk",sans-serif; font-weight:700; line-height:.98;
+    font-size:clamp(44px,7vw,82px); letter-spacing:-.02em; margin:18px 0 6px;
+  }
+  .hero .sub{
+    font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:clamp(16px,2.1vw,21px);
+    color:var(--ink-soft); letter-spacing:.01em; margin-bottom:22px;
+  }
+  .hero .sub b{color:var(--teal-d); font-weight:600}
+  .thesis{font-size:17.5px; color:var(--ink); max-width:30em}
+  .thesis .hl{background:linear-gradient(transparent 62%, #F5A30055 62%); padding:0 2px}
+
+  /* ---------- feedback loop svg ---------- */
+  .loopcard{
+    background:var(--panel); border:1.5px solid var(--rule); border-radius:18px;
+    padding:20px 20px 14px; box-shadow:var(--shadow);
+  }
+  .loopcard .cap{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px}
+  svg{display:block; width:100%; height:auto}
+  .draw{stroke-dasharray:1; stroke-dashoffset:1; animation:draw 1.1s ease forwards}
+  .draw.d2{animation-delay:.5s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  /* ---------- corridor map ---------- */
+  .mapsec{padding:14px 0 8px}
+  .map{
+    background:var(--panel); border:1.5px solid var(--rule); border-radius:20px;
+    padding:24px 22px 16px; box-shadow:var(--shadow);
+    background-image:radial-gradient(var(--paper-2) 1px, transparent 1px);
+    background-size:18px 18px; background-position:-2px -2px;
+  }
+  .map .head{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:4px}
+  .map h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:22px; margin:0; letter-spacing:-.01em}
+  .map .legend{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft)}
+  .map .legend i{font-style:normal; padding:1px 7px; border-radius:20px; color:#fff; margin-left:8px}
+  .lg-pos{background:var(--amber-d)} .lg-neg{background:var(--red)}
+  .agent{animation:travel 6s cubic-bezier(.7,0,.3,1) infinite}
+  @keyframes travel{
+    0%,12%{transform:translateX(0)}
+    27%,40%{transform:translateX(330px)}
+    55%,90%{transform:translateX(660px)}
+    100%{transform:translateX(0)}
+  }
+  .mapnote{font-size:14.5px; color:var(--ink-soft); margin:12px 4px 0; max-width:60em}
+
+  /* ---------- generic section ---------- */
+  .section{padding:54px 0 8px}
+  .sec-head{display:flex; align-items:flex-end; gap:18px; margin-bottom:26px; flex-wrap:wrap}
+  .sec-tag{
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; color:#fff;
+    background:var(--rule); border-radius:11px; padding:7px 13px; letter-spacing:.04em; line-height:1;
+  }
+  .sec-head h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(26px,4vw,38px);
+    letter-spacing:-.018em; margin:0}
+  .sec-head p{margin:6px 0 0; color:var(--ink-soft); font-size:16px; flex-basis:100%; max-width:46em}
+
+  /* ---------- atom cards ---------- */
+  .atoms{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  .atom{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:20px 18px;
+    transition:transform .18s ease, box-shadow .18s ease}
+  .atom:hover{transform:translateY(-3px); box-shadow:var(--shadow)}
+  .atom .sym{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:30px; letter-spacing:-.01em}
+  .atom .sym small{font-family:"IBM Plex Mono",monospace; font-weight:400; font-size:13px; color:var(--ink-faint); letter-spacing:.04em}
+  .atom .zh{font-weight:600; margin-top:2px; font-size:15px; color:var(--teal-d)}
+  .atom p{font-size:15px; color:var(--ink-soft); margin:9px 0 14px}
+  .chip{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:13px;
+    background:var(--panel-2); border:1px solid var(--track); border-radius:8px; padding:5px 10px; color:var(--ink)}
+
+  /* ---------- two-up panels ---------- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px}
+  .panel{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:22px 20px}
+  .panel h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:19px; margin:0 0 4px; letter-spacing:-.01em}
+  .panel .kq{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint)}
+  .panel p{font-size:15px; color:var(--ink-soft); margin:10px 0}
+  .panel .vs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+  .panel .vs > div{background:var(--panel-2); border-radius:11px; padding:12px 13px; font-size:14px}
+  .panel .vs b{display:block; font-family:"Space Grotesk",sans-serif; font-size:15px; margin-bottom:3px; color:var(--ink)}
+  .accent-l{border-left:5px solid var(--teal)}
+  .accent-a{border-left:5px solid var(--amber)}
+
+  /* ---------- mdp tuple ---------- */
+  .mdp{background:var(--rule); color:#EDEEEA; border-radius:18px; padding:26px 24px; margin-top:16px}
+  .mdp h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:21px; margin:0 0 16px; color:#fff}
+  .mdp h3 .tup{color:var(--amber)}
+  .tuple{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:18px}
+  .tuple .t{background:#22242b; border:1px solid #34373f; border-radius:12px; padding:13px 12px; text-align:center}
+  .tuple .t .g{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:26px; color:#fff}
+  .tuple .t .n{font-size:12px; color:#A7ADB6; margin-top:3px}
+  .tuple .t .c{font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--amber); margin-top:7px; word-break:break-word}
+  .mdpfoot{display:flex; gap:26px; flex-wrap:wrap; align-items:center}
+  .mdpname{display:flex; gap:18px; flex-wrap:wrap; font-size:14px; color:#C8CDD4}
+  .mdpname b{color:#fff; font-family:"Space Grotesk",sans-serif}
+  .mdpname .L{color:var(--amber); font-weight:700; font-family:"Space Grotesk",sans-serif}
+  .quote{font-size:13.5px; color:#9aa0a8; font-style:italic; border-top:1px solid #34373f; margin-top:16px; padding-top:12px}
+
+  /* ---------- llm sidebar ---------- */
+  .llm{background:var(--panel); border:1.5px dashed var(--teal); border-radius:16px; padding:22px 20px; margin-top:16px}
+  .llm h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:19px; margin:0 0 2px}
+  .llm h3 .b{color:var(--teal-d)}
+  table.mapt{width:100%; border-collapse:collapse; margin:12px 0 6px; font-size:14.5px}
+  table.mapt td{padding:7px 10px; border-bottom:1px solid var(--track); vertical-align:top}
+  table.mapt tr td:first-child{color:var(--ink-soft); width:34%}
+  table.mapt tr td:last-child{font-family:"IBM Plex Mono",monospace; font-size:13px}
+  .punch{font-size:14.5px; color:var(--ink); background:var(--panel-2); border-radius:11px; padding:12px 14px; margin-top:6px}
+
+  /* ---------- L1 formula ---------- */
+  .traj{font-family:"IBM Plex Mono",monospace; font-size:15px; background:var(--panel); border:1.5px solid var(--rule);
+    border-radius:14px; padding:16px 18px; overflow-x:auto; box-shadow:var(--shadow)}
+  .traj .s{color:var(--teal-d)} .traj .a{color:var(--ink)} .traj .r{color:var(--red)} .traj .rp{color:var(--amber-d)}
+  .callout{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0}
+  .callout > div{border-radius:14px; padding:16px 18px}
+  .c-r{background:#fff; border:1.5px solid var(--red)}
+  .c-g{background:#fff; border:1.5px solid var(--amber-d)}
+  .callout b{font-family:"Space Grotesk",sans-serif; font-size:16px; display:block; margin-bottom:4px}
+  .c-r b{color:var(--red)} .c-g b{color:var(--amber-d)}
+  .callout p{margin:0; font-size:14.5px; color:var(--ink-soft)}
+
+  .formula{background:var(--rule); color:#fff; border-radius:18px; padding:30px 26px; margin:16px 0; text-align:center}
+  .formula .big{font-family:"IBM Plex Mono",monospace; font-size:clamp(19px,3.4vw,30px); letter-spacing:.01em; line-height:1.5}
+  .formula .big .gm{color:var(--amber)} .formula .big .rr{color:#ff9d7a}
+  .formula .rec{margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:15px; color:#C8CDD4}
+  .formula .rec b{color:var(--amber)}
+  .gamma-note{font-size:14px; color:var(--ink-soft); margin:6px 4px 0}
+  .aside{font-size:13px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; margin:8px 4px 0}
+
+  /* ---------- worked example ---------- */
+  .work{background:var(--panel); border:1.5px solid var(--rule); border-radius:18px; padding:24px 22px; margin-top:18px}
+  .work .setup{font-family:"IBM Plex Mono",monospace; font-size:14px; color:var(--ink-soft); margin-bottom:16px}
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  .step{background:var(--panel-2); border-radius:13px; padding:16px; position:relative}
+  .step .lab{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-faint); letter-spacing:.08em}
+  .step .calc{font-family:"IBM Plex Mono",monospace; font-size:13.5px; color:var(--ink-soft); margin:6px 0 8px}
+  .step .res{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:30px}
+  .step.g2 .res{color:var(--amber-d)} .step.g1 .res{color:var(--teal-d)} .step.g0 .res{color:var(--ink)}
+  .insight{margin-top:16px; font-size:15px; background:#fff; border-left:5px solid var(--amber); border-radius:0 12px 12px 0; padding:14px 16px}
+  .insight b{color:var(--amber-d)}
+
+  /* ---------- next / cheatsheet ---------- */
+  .next{display:grid; grid-template-columns:repeat(4,1fr); gap:13px; margin-top:6px}
+  .nstep{background:var(--panel); border:1.5px solid var(--rule); border-radius:14px; padding:16px}
+  .nstep .t{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.12em; color:var(--ink-faint)}
+  .nstep .f{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:18px; margin:5px 0 5px}
+  .nstep p{margin:0; font-size:13.5px; color:var(--ink-soft)}
+
+  footer{margin-top:54px; border-top:1.5px solid var(--rule); padding:22px 0 50px}
+  footer .wrap{display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); letter-spacing:.04em}
+
+  /* ---------- quiz ---------- */
+  .quiz-intro{font-size:15px; color:var(--ink-soft); margin:0 4px 22px; max-width:50em}
+  .quiz-intro b{color:var(--teal-d)}
+  .q{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:20px 20px 18px; margin-bottom:14px}
+  .q-head{display:flex; gap:12px; align-items:baseline; margin-bottom:14px; flex-wrap:wrap}
+  .q-num{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:13px; color:#fff; background:var(--rule); border-radius:8px; padding:5px 9px; line-height:1; flex:none}
+  .q-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; color:var(--ink-faint); flex:none; align-self:center}
+  .q-text{font-size:16px; font-weight:500; color:var(--ink); flex:1 1 100%}
+  .q-text code{font-family:"IBM Plex Mono",monospace; font-size:14px; background:var(--panel-2); padding:1px 6px; border-radius:6px}
+  .opts{display:grid; gap:9px}
+  .opt{text-align:left; font-family:"IBM Plex Sans",sans-serif; font-size:15px; background:var(--panel-2);
+    border:1.5px solid var(--track); border-radius:10px; padding:11px 14px; cursor:pointer;
+    transition:border-color .15s,background .15s,transform .15s; color:var(--ink);
+    display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%}
+  .opt:hover:not(.locked){border-color:var(--ink); transform:translateX(3px)}
+  .opt .mark{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; flex:none}
+  .opt.locked{cursor:default}
+  .opt.ok{border-color:var(--ok); background:var(--ok-bg)}
+  .opt.ok .mark{color:var(--ok)} .opt.ok .mark::after{content:"✓"}
+  .opt.no{border-color:var(--no); background:var(--no-bg)}
+  .opt.no .mark{color:var(--no)} .opt.no .mark::after{content:"✗"}
+  .explain{display:none; margin-top:13px; font-size:14.5px; color:var(--ink-soft);
+    background:var(--panel-2); border-left:5px solid var(--amber); border-radius:0 11px 11px 0; padding:12px 14px}
+  .explain.show{display:block}
+  .explain b{color:var(--amber-d)}
+  .explain code{font-family:"IBM Plex Mono",monospace; font-size:13px}
+  .reveal-btn{font-family:"IBM Plex Mono",monospace; font-size:13px; background:var(--rule); color:#fff;
+    border:none; border-radius:9px; padding:10px 15px; cursor:pointer; letter-spacing:.03em}
+  .reveal-btn:hover{background:var(--teal-d)}
+  .ans{display:none; margin-top:14px}
+  .ans.show{display:block}
+
+  /* ---------- reveal ---------- */
+  .js .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease}
+  .js .reveal.in{opacity:1; transform:none}
+
+  /* ---------- responsive ---------- */
+  @media(max-width:860px){
+    .hero .wrap{grid-template-columns:1fr; gap:26px}
+    .atoms,.steps,.tuple{grid-template-columns:1fr 1fr}
+    .next{grid-template-columns:1fr 1fr}
+    .grid2,.callout,.panel .vs{grid-template-columns:1fr}
+    .mdpfoot{flex-direction:column; align-items:flex-start}
+  }
+  @media(max-width:520px){
+    .atoms,.steps,.tuple,.next{grid-template-columns:1fr}
+  }
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .draw{animation:none; stroke-dashoffset:0}
+    .agent{animation:none; transform:translateX(660px)}
+    .js .reveal{opacity:1; transform:none; transition:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= HERO ======================= -->
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">LLM RL · 课程笔记 01</span>
+      <h1>最小 RL<br>语言</h1>
+      <div class="sub"><b>L0</b> 世界观　·　<b>L1</b> 把「长期」算出来</div>
+      <p class="thesis">强化学习要解的,其实只有一句话——<span class="hl">在一个叫 MDP 的世界里,学会怎么选动作,让长期累积的奖励最大。</span>这一页,把这句话里的每一个词讲清楚。</p>
+    </div>
+
+    <div class="loopcard">
+      <div class="cap">Figure · agent–environment loop</div>
+      <svg viewBox="0 0 460 250" role="img" aria-label="智能体与环境的交互循环">
+        <defs>
+          <marker id="ahT" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0E7C86"/></marker>
+          <marker id="ahI" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#17181C"/></marker>
+        </defs>
+        <!-- boxes -->
+        <rect x="24" y="96" width="170" height="74" rx="15" fill="#F2F3EE" stroke="#17181C" stroke-width="2"/>
+        <text x="109" y="129" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="21" fill="#17181C">AGENT</text>
+        <text x="109" y="150" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#0A5860">策略 πθ(a|s)</text>
+
+        <rect x="266" y="96" width="170" height="74" rx="15" fill="#F2F3EE" stroke="#17181C" stroke-width="2"/>
+        <text x="351" y="129" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="20" fill="#17181C">ENVIRONMENT</text>
+        <text x="351" y="150" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="#B97C00">MDP · 动力学 p</text>
+
+        <!-- top arrow agent -> env -->
+        <path class="draw" d="M196,112 C235,58 235,58 264,112" fill="none" stroke="#0E7C86" stroke-width="2.5" marker-end="url(#ahT)" pathLength="1"/>
+        <text x="230" y="50" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#0A5860">动作 Aₜ</text>
+
+        <!-- bottom arrow env -> agent -->
+        <path class="draw d2" d="M264,156 C225,212 225,212 196,156" fill="none" stroke="#17181C" stroke-width="2.5" marker-end="url(#ahI)" pathLength="1"/>
+        <text x="230" y="232" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#17181C">奖励 Rₜ₊₁　·　状态 Sₜ₊₁</text>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= CORRIDOR MAP (signature) ======================= -->
+<section class="mapsec">
+  <div class="wrap reveal">
+    <div class="map">
+      <div class="head">
+        <h2>corridor 线路图 — 一个最小的 MDP</h2>
+        <div class="legend">奖励 reward <i class="lg-neg">−1</i><i class="lg-pos">+10</i></div>
+      </div>
+      <svg viewBox="0 0 920 250" role="img" aria-label="A 到 B 到 G 的走廊线路图">
+        <defs>
+          <marker id="fwd" markerWidth="9" markerHeight="9" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#17181C"/></marker>
+        </defs>
+        <!-- back arc B -> A -->
+        <path d="M455,158 C360,222 235,222 140,160" fill="none" stroke="#C73E1D" stroke-width="2.5" stroke-dasharray="2 6" marker-end="url(#fwd)"/>
+        <text x="300" y="232" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#C73E1D">B 选 ← 回 A · −1</text>
+        <!-- self loop A -->
+        <path d="M112,108 C92,66 168,66 150,106" fill="none" stroke="#C73E1D" stroke-width="2.5" stroke-dasharray="2 6" marker-end="url(#fwd)"/>
+        <text x="131" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#C73E1D">A 选 ← 撞墙 · −1</text>
+
+        <!-- main route -->
+        <line x1="130" y1="132" x2="460" y2="132" stroke="#0E7C86" stroke-width="11" stroke-linecap="round"/>
+        <line x1="460" y1="132" x2="790" y2="132" stroke="#F5A300" stroke-width="11" stroke-linecap="round"/>
+        <!-- forward arrows + labels -->
+        <text x="295" y="120" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="15" fill="#0A5860">→　−1</text>
+        <text x="625" y="120" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="15" fill="#B97C00">→　+10</text>
+
+        <!-- stations -->
+        <circle cx="130" cy="132" r="22" fill="#FBFBF9" stroke="#0E7C86" stroke-width="5"/>
+        <circle cx="460" cy="132" r="22" fill="#FBFBF9" stroke="#0E7C86" stroke-width="5"/>
+        <circle cx="790" cy="132" r="26" fill="#F5A300" stroke="#17181C" stroke-width="3"/>
+        <circle cx="790" cy="132" r="13" fill="none" stroke="#FBFBF9" stroke-width="2.5"/>
+
+        <text x="130" y="139" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="20" fill="#0A5860">A</text>
+        <text x="460" y="139" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="20" fill="#0A5860">B</text>
+        <text x="790" y="139" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="20" fill="#17181C">G</text>
+
+        <text x="130" y="186" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#535862">state A · 起点</text>
+        <text x="460" y="186" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#535862">state B</text>
+        <text x="790" y="186" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#17181C">state G · 终点</text>
+
+        <!-- travelling agent -->
+        <g class="agent">
+          <circle cx="130" cy="132" r="11" fill="#17181C"/>
+          <circle cx="130" cy="132" r="4" fill="#F5A300"/>
+        </g>
+      </svg>
+      <p class="mapnote">把 MDP 画成一张线路图就全通了:<b>站点 = 状态</b>,<b>线路 = 转移</b>,<b>线上的数字 = 奖励</b>。小车(agent)要从 A 走到终点 G;每走一步 −1 逼它走快,到 G 一次性 +10。虚线是「往回 / 撞墙」的动作。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= L0 ======================= -->
+<section class="section" id="l0">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">L0</span>
+      <h2>世界观</h2>
+      <p>RL 的舞台:agent、environment,以及它们之间来回传的三个信号。先把这层装进脑子,后面所有公式都站在它上面。</p>
+    </div>
+
+    <!-- atoms -->
+    <div class="atoms reveal">
+      <div class="atom">
+        <div class="sym">状态 <small>state · Sₜ</small></div>
+        <div class="zh">环境此刻的快照</div>
+        <p>agent 据此做决定的全部依据。corridor 里 = 小车在哪个格子。</p>
+        <span class="chip">S = {A, B, G}</span>
+      </div>
+      <div class="atom">
+        <div class="sym">动作 <small>action · Aₜ</small></div>
+        <div class="zh">agent 能主动做的选择</div>
+        <p>唯一能被 agent 控制的东西。其余一切都归环境。</p>
+        <span class="chip">A = {→, ←}</span>
+      </div>
+      <div class="atom">
+        <div class="sym">奖励 <small>reward · Rₜ₊₁</small></div>
+        <div class="zh">环境给的即时标量</div>
+        <p>关键:是<b>即时</b>打分,不是「最终好坏」。−1 不代表这步差。</p>
+        <span class="chip">每步 −1 · 到 G +10</span>
+      </div>
+    </div>
+
+    <!-- transition vs dynamics + markov -->
+    <div class="grid2">
+      <div class="panel accent-l reveal">
+        <div class="kq">instance vs rule</div>
+        <h3>转移 ≠ 动力学</h3>
+        <p>两个词常被混。一个是「那一步」,一个是「规则」。</p>
+        <div class="vs">
+          <div><b>transition 转移</b>一次 <span class="mono">(s,a,r,s′)</span>,真的走的那一步。= 引擎跑出的一帧。replay buffer 里存的就是它。</div>
+          <div><b>dynamics 动力学</b><span class="mono">p(s′,r│s,a)</span>,给定状态+动作会发生什么的规则。= 物理引擎本身。</div>
+        </div>
+      </div>
+
+      <div class="panel accent-a reveal">
+        <div class="kq">markov property</div>
+        <h3>马尔可夫性</h3>
+        <p>未来只看当前状态,不看历史——当前状态是「历史的<b>充分统计量</b>」。</p>
+        <p class="mono" style="font-size:13.5px;color:var(--ink)">p(s′│sₜ,aₜ) = p(s′│sₜ,aₜ, 历史…)</p>
+        <p><b>判断法:</b>只看当前状态预测下一步,和「额外知道完整历史」一样好吗?一样 → Markov。它是「环境+状态选择」的属性,能靠把状态做厚<b>造</b>出来:单帧 Pong 不 Markov,叠 4 帧就 Markov(能看出球速)。</p>
+      </div>
+    </div>
+
+    <!-- MDP tuple -->
+    <div class="mdp reveal">
+      <h3>MDP = 一个 RL 问题的完整说明书 = <span class="tup">(S, A, P, R, γ)</span> + 马尔可夫性</h3>
+      <div class="tuple">
+        <div class="t"><div class="g">S</div><div class="n">状态集</div><div class="c">{A,B,G}</div></div>
+        <div class="t"><div class="g">A</div><div class="n">动作集</div><div class="c">{→,←}</div></div>
+        <div class="t"><div class="g">P</div><div class="n">转移/动力学</div><div class="c">那张转移表</div></div>
+        <div class="t"><div class="g">R</div><div class="n">奖励</div><div class="c">−1 / +10</div></div>
+        <div class="t"><div class="g">γ</div><div class="n">折扣</div><div class="c">0.9</div></div>
+      </div>
+      <div class="mdpfoot">
+        <div class="mdpname">
+          <span><span class="L">M</span>arkov — 只看当下,不看历史</span>
+          <span><span class="L">D</span>ecision — 有 agent 在<b>选动作</b></span>
+          <span><span class="L">P</span>rocess — 随时间展开成序列</span>
+        </div>
+      </div>
+      <div class="quote">"finite MDPs … are all you need to understand 90% of modern reinforcement learning." — Sutton &amp; Barto, 2nd ed., §3.6 (p.67)</div>
+    </div>
+
+    <!-- LLM mapping -->
+    <div class="llm reveal">
+      <h3>同一套话,搬到 <span class="b">LLM RL</span></h3>
+      <table class="mapt">
+        <tr><td>state 状态</td><td>prompt + 已生成的 token</td></tr>
+        <tr><td>action 动作</td><td>下一个 token</td></tr>
+        <tr><td>transition 转移</td><td>把 token 拼到后面(确定性,trivial)</td></tr>
+        <tr><td>reward 奖励</td><td>奖励模型 / 验证器(结尾给) + 每 token KL</td></tr>
+        <tr><td>policy 策略</td><td>LLM 本身 = πθ</td></tr>
+      </table>
+      <div class="punch"><b>所以 PPO/GRPO 训 LLM = 在一个特殊 MDP 上解 RL:</b>转移 trivial,随机性只在 policy 采样,reward 稀疏。环境几乎白送,难点全在 policy 和 reward 设计。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= PRIOR KNOWLEDGE ======================= -->
+<section class="section" id="prior">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">前置</span>
+      <h2>读懂概率记号</h2>
+      <p>像 L0 里的 <code>p(s′,r│s,a)</code> 这种式子,拆开只有三个零件:<b>p(概率)</b>、<b>│(给定)</b>、<b>,(且)</b>。会这三个,RL 所有概率式子都能读——往下 L2 的 π、V、Q 全靠它。</p>
+    </div>
+
+    <div class="atoms reveal">
+      <div class="atom">
+        <div class="sym">A │ B <small>given · 条件</small></div>
+        <div class="zh">给定 / 在…前提下</div>
+        <p>左边 = 要问的(随机、未定);右边 = 已知的前提(固定)。<b>读法:先看右边的前提,再看左边的问题。</b></p>
+        <span class="chip">P(下雨 │ 乌云)</span>
+      </div>
+      <div class="atom">
+        <div class="sym">x , y <small>and · 联合</small></div>
+        <div class="zh">且 / 一起发生</div>
+        <p>竖线某一侧内部的逗号 = 「同时成立」。<code>(s′,r)</code> 是<b>一个</b>联合结果:s′ 和 r 捆绑出现。</p>
+        <span class="chip">(s′, r) = s′ 且 r</span>
+      </div>
+      <div class="atom">
+        <div class="sym">p( · ) <small>probability</small></div>
+        <div class="zh">概率,会归一</div>
+        <p>对所有可能结果求和 = 1。<b>0 = 不可能,1 = 必然。</b>字母 p 就是在喊「我是概率」。</p>
+        <span class="chip">Σ p(·) = 1</span>
+      </div>
+    </div>
+
+    <div class="panel reveal" style="margin-top:16px">
+      <div class="kq">组合起来读</div>
+      <h3>p(s′,r │ s,a)　=　p( (s′,r) │ (s,a) )</h3>
+      <p>逗号是「且」,竖线是「给定」,所以整句念成:</p>
+      <div class="traj" style="box-shadow:none">
+        <span style="color:var(--ink-faint)">Pr{ </span><span class="s">下一状态 = s′</span> <b style="color:var(--ink)">且</b> <span class="rp">奖励 = r</span> <span style="color:var(--ink-faint)">　│　</span><span class="a">当前 = s</span> <b style="color:var(--ink)">且</b> <span class="a">做了 a</span><span style="color:var(--ink-faint)"> }</span>
+      </div>
+      <p style="margin-top:14px">corridor 实例(确定性,所以非 0 即 1):</p>
+      <div style="display:grid; gap:9px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:var(--panel-2); border-radius:11px; padding:11px 14px">
+          <div><div class="mono" style="font-size:13px; color:var(--ink)">p(s′=G, r=+10 │ B, →)</div><div style="font-size:13px; color:var(--ink-soft); margin-top:2px">在(B 且 →)下,到 G 且 +10 一起发生</div></div>
+          <b style="color:var(--ok); font-size:16px; flex:none">= 1</b>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:var(--panel-2); border-radius:11px; padding:11px 14px">
+          <div><div class="mono" style="font-size:13px; color:var(--ink)">p(s′=G, r=−1 │ B, →)</div><div style="font-size:13px; color:var(--ink-soft); margin-top:2px">同样到 G,但奖励配成 −1 → 不可能</div></div>
+          <b style="color:var(--no); font-size:16px; flex:none">= 0</b>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; background:var(--panel-2); border-radius:11px; padding:11px 14px">
+          <div><div class="mono" style="font-size:13px; color:var(--ink)">p(s′=B, r=−1 │ A, →)</div><div style="font-size:13px; color:var(--ink-soft); margin-top:2px">在(A 且 →)下,到 B 且 −1 一起发生</div></div>
+          <b style="color:var(--ok); font-size:16px; flex:none">= 1</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="punch reveal" style="border-left:5px solid var(--teal); border-radius:0 11px 11px 0; margin-top:14px">
+      <b style="color:var(--teal-d)">同一个 │ 也用在期望:</b> <code>E[G │ s]</code> = 「给定从 s 出发,回报 G 的平均值」。L2 的 <code>Vπ(s)=E[G│s]</code>、<code>Qπ(s,a)=E[G│s,a]</code>,只是换了竖线右边的前提而已。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= L1 ======================= -->
+<section class="section" id="l1">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">L1</span>
+      <h2>把「长期」算出来</h2>
+      <p>这层只钉死一件事:reward 是这一步的即时分;<b>return</b> 才是我们真正要最大化的东西。</p>
+    </div>
+
+    <div class="traj reveal">
+      <span style="color:var(--ink-faint)">一条轨迹 trajectory　τ =</span>
+      ( <span class="s">S₀</span>, <span class="a">A₀</span>, <span class="r">R₁</span>, <span class="s">S₁</span>, <span class="a">A₁</span>, <span class="rp">R₂</span>, <span class="s">S₂</span>, … )
+      <span style="color:var(--ink-faint)">　← 一整局的记录,「跑一次策略」就采到一条</span>
+    </div>
+
+    <div class="callout reveal">
+      <div class="c-r"><b>reward　rₜ</b><p>这一步的即时分,环境给的<b>事实</b>。短视。</p></div>
+      <div class="c-g"><b>return　Gₜ</b><p>从 t 起往后的折扣累积,我们要最大化的<b>目标</b>。看长远。</p></div>
+    </div>
+
+    <div class="formula reveal">
+      <div class="big">Gₜ = rₜ + <span class="gm">γ</span>rₜ₊₁ + <span class="gm">γ²</span>rₜ₊₂ + ⋯ = <span class="rr">Σ</span><sub style="font-size:.5em">k≥0</sub> <span class="gm">γ</span><sup style="font-size:.6em">k</sup> rₜ₊ₖ</div>
+      <div class="rec">倒着算最省力 ——　<b>Gₜ = rₜ + γ · Gₜ₊₁</b></div>
+    </div>
+    <p class="gamma-note"><b>折扣因子 γ ∈ [0,1]:</b>越远的奖励越打折。γ=0 只顾眼前;γ→1 极度看长远。corridor 用 0.9。它既保证无穷和收敛,也对应「现在的 +10 比十步后的 +10 更值钱」。</p>
+    <p class="aside">注:书里把动作 Aₜ 换来的奖励记作 Rₜ₊₁(下标差一格),含义与此处 rₜ 完全相同。</p>
+
+    <!-- worked example -->
+    <div class="work reveal">
+      <div class="setup">worked example　·　轨迹奖励 r₀=−1, r₁=−1, r₂=+10　·　γ=0.9　·　从最后一步往前推</div>
+      <div class="steps">
+        <div class="step g2">
+          <div class="lab">G₂　(最后一步,后面没奖励)</div>
+          <div class="calc">G₂ = r₂</div>
+          <div class="res">+10</div>
+        </div>
+        <div class="step g1">
+          <div class="lab">G₁ = r₁ + γ·G₂</div>
+          <div class="calc">= −1 + 0.9 × 10</div>
+          <div class="res">+8</div>
+        </div>
+        <div class="step g0">
+          <div class="lab">G₀ = r₀ + γ·G₁</div>
+          <div class="calc">= −1 + 0.9 × 8</div>
+          <div class="res">+6.2</div>
+        </div>
+      </div>
+      <div class="insight">G₀ = <b>6.2 &gt; 0</b>,尽管前两步都是 −1——因为它们正走在通往 +10 的路上。<b>这就是 return 把「即时 vs 长期」的矛盾解决掉的地方:</b>单看 reward 像在亏,算成 return 才看出这条路是赚的。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= QUIZ ======================= -->
+<section class="section" id="quiz">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Q</span>
+      <h2>随堂自测</h2>
+      <p>点一个选项即时判对错,下面会展开为什么。算题那道点「看答案」。全做对再进 L2。<br><b>题目默认都在上面那条 corridor(A–B–G)里</b>;标 <code>→LLM</code> 的换成 LLM 那个 MDP,Q7 只练公式不绑环境。</p>
+    </div>
+
+    <div class="reveal">
+
+      <!-- Q1 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q1</span><span class="q-tag">L0 · 状态 vs 转移</span>
+          <span class="q-text">corridor 里有几个<b>状态</b>、几个<b>转移</b>(走法)?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>3 个状态,3 个转移</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>3 个状态,4 个转移</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>4 个状态,4 个转移</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">状态是 3 个格子 <code>{A,B,G}</code>;转移是 4 种走法(A→、A←、B→、B←)。<b>表的行数=转移数,不是状态数。</b></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q2</span><span class="q-tag">L0 · (s,a,r,s′)</span>
+          <span class="q-text">在状态 <b>B</b> 选 <b>→</b>,写成 <code>(s,a,r,s′)</code> 是?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span><code>(B, →, −1, G)</code></span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span><code>(B, →, +10, G)</code></span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span><code>(B, →, +10, A)</code></span><span class="mark"></span></button>
+        </div>
+        <div class="explain">在 B 选 → 到终点 G,一次性得 <b>+10</b>。s 是出发状态 B,s′ 是落地状态 G。</div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q3</span><span class="q-tag">L0 · 转移 vs 动力学</span>
+          <span class="q-text">函数 <code>p(s′,r│s,a)</code> 是下面哪个?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>transition —— 真的走的那一步</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>dynamics —— 规则本身</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>trajectory —— 一整局</span><span class="mark"></span></button>
+        </div>
+        <div class="explain"><code>p(s′,r│s,a)</code> 是<b>规则 = dynamics(动力学)</b>。单次 <code>(s,a,r,s′)</code> 才是 transition;一串才是 trajectory。</div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q4</span><span class="q-tag">L0 · 马尔可夫性</span>
+          <span class="q-text">规则改成「在 B 选 →,<b>只有从 A 来</b>才到 G,否则掉坑」。此时 <code>state={A,B,G}</code> 还满足马尔可夫性吗?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>满足 —— 因为规则写出来了</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>不满足 —— 预测下一步还得知道历史</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>满足 —— 因为 B 是合法状态</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">同样"在 B"、同样选 →,结果取决于<b>怎么来的</b> → 当前状态不再是历史的充分统计量 → <b>非 Markov</b>。修法:把状态做厚,如 <code>"B-从A来"</code>。</div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q5</span><span class="q-tag">L0 · MDP 五元组</span>
+          <span class="q-text">MDP <code>(S, A, P, R, γ)</code> 里,<b>γ</b> 是什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>状态集</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>奖励函数</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>折扣因子(0~1)</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">γ = <b>折扣因子</b>。S=状态集、A=动作集、P=转移、R=奖励、γ=折扣。</div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q6</span><span class="q-tag">L1 · reward vs return</span>
+          <span class="q-text">RL 真正要<b>最大化</b>的是哪个?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>每一步的即时 reward <code>rₜ</code></span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>折扣累积 return <code>Gₜ</code></span><span class="mark"></span></button>
+        </div>
+        <div class="explain">reward 是即时<b>事实</b>(短视);return <code>Gₜ</code> 才是优化<b>目标</b>(看长远)。这是 L1 的命根。</div>
+      </div>
+
+      <!-- Q7 compute -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q7</span><span class="q-tag">L1 · 亲手算 G</span>
+          <span class="q-text">新轨迹:<code>r₀=2, r₁=0, r₂=5</code>,<code>γ=0.5</code>。倒着用 <code>Gₜ=rₜ+γ·Gₜ₊₁</code>,求 G₂ / G₁ / G₀。先自己算,再点开对答案。</span></div>
+        <button class="reveal-btn">看答案 ▸</button>
+        <div class="ans">
+          <div class="steps">
+            <div class="step g2"><div class="lab">G₂ = r₂</div><div class="calc">= 5</div><div class="res">5</div></div>
+            <div class="step g1"><div class="lab">G₁ = r₁ + γ·G₂</div><div class="calc">= 0 + 0.5×5</div><div class="res">2.5</div></div>
+            <div class="step g0"><div class="lab">G₀ = r₀ + γ·G₁</div><div class="calc">= 2 + 0.5×2.5</div><div class="res">3.25</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q8</span><span class="q-tag">L1 · γ 的极端</span>
+          <span class="q-text">如果 <code>γ=0</code>,那么 <code>G₀</code> 等于多少?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>0</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span><code>r₀</code> —— 只剩眼前那一步</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>所有 reward 之和</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">γ=0 → 所有未来项乘 0,只剩 <code>G₀=r₀</code>,即<b>完全短视</b>。γ→1 才会极度看长远。</div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q9</span><span class="q-tag">L0 → LLM</span>
+          <span class="q-text">在 LLM RL 里,<b>action</b> 是什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>整段回复</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>下一个 token</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>prompt</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">action = <b>下一个 token</b>;state = prompt + 已生成;policy = LLM 本身。</div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q10</span><span class="q-tag">L0 → LLM</span>
+          <span class="q-text">LLM RL 里的 <b>transition(转移)</b> 有什么特点?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>随机、需要建模</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>确定性的字符串拼接,trivial</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>由奖励模型决定</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">选了 token 就<b>确定</b>拼到后面(p=1)。随机性只在 policy 采样,环境几乎白送——这正是 LLM RL 和经典 RL 的关键区别。</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================= NEXT ======================= -->
+<section class="section" id="next">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">↳</span>
+      <h2>下一站</h2>
+      <p>有了 return,就能定义「好坏」。L2–L3 用它造出 RL 解法那一侧的全部工具。</p>
+    </div>
+    <div class="next reveal">
+      <div class="nstep"><div class="t">POLICY</div><div class="f">π(a│s)</div><p>状态→动作的概率分布。= 我们要训练的对象。</p></div>
+      <div class="nstep"><div class="t">STATE VALUE</div><div class="f">Vπ(s)</div><p>= 𝔼[G│s]。这个状态有多好。</p></div>
+      <div class="nstep"><div class="t">ACTION VALUE</div><div class="f">Qπ(s,a)</div><p>= 𝔼[G│s,a]。这个动作有多好。</p></div>
+      <div class="nstep"><div class="t">ADVANTAGE</div><div class="f">A = Q − V</div><p>这个动作比平均好多少。= PPO 的核心信号。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>course · LLM RL → PPO → GRPO → verl/slime</span>
+    <span>教材 · Sutton &amp; Barto 2nd ed · §3.1–3.3, §3.5–3.6</span>
+    <span>本页 · L0 世界观 + L1 回报 G</span>
+  </div>
+</footer>
+
+<script>
+  document.documentElement.classList.add('js');
+  const io = new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // quiz: multiple choice
+  document.querySelectorAll('.q .opt').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const q=btn.closest('.q'); if(q.classList.contains('answered'))return;
+      q.classList.add('answered');
+      q.querySelectorAll('.opt').forEach(o=>{ o.classList.add('locked'); if(o.dataset.correct==='true')o.classList.add('ok'); });
+      if(btn.dataset.correct!=='true') btn.classList.add('no');
+      const ex=q.querySelector('.explain'); if(ex)ex.classList.add('show');
+    });
+  });
+  // quiz: reveal-answer (compute)
+  document.querySelectorAll('.reveal-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const a=b.nextElementSibling; a.classList.toggle('show');
+      b.textContent=a.classList.contains('show')?'收起答案 ▾':'看答案 ▸';
+    });
+  });
+</script>
+</body>
+</html>

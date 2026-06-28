@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评估好坏 · L2 · π / V / Q · 课程笔记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E8EAE6; --paper-2:#DEE1DB; --panel:#FBFBF9; --panel-2:#F2F3EE;
+    --ink:#17181C; --ink-soft:#535862; --ink-faint:#8B9097;
+    --teal:#0E7C86; --teal-d:#0A5860; --amber:#F5A300; --amber-d:#B97C00;
+    --red:#C73E1D; --track:#C4CAC8; --ok:#2F8F5B; --ok-bg:#EAF5EE; --no:#C73E1D; --no-bg:#FBEBE7;
+    --rule:#13141a;
+    --shadow:0 1px 0 rgba(20,22,28,.06), 0 12px 30px -18px rgba(20,22,28,.4);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:17px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"IBM Plex Mono",monospace}
+  code{font-family:"IBM Plex Mono",monospace; font-size:.92em; background:var(--panel-2); padding:1px 6px; border-radius:6px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 26px}
+
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:12.5px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--teal-d); font-weight:500; display:inline-flex; align-items:center; gap:10px;}
+  .eyebrow::before{content:""; width:26px; height:2px; background:var(--teal)}
+
+  .hero{padding:64px 0 30px; position:relative; overflow:hidden}
+  .hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:40px; align-items:center}
+  h1{font-family:"Space Grotesk",sans-serif; font-weight:700; line-height:.98;
+    font-size:clamp(44px,7vw,82px); letter-spacing:-.02em; margin:18px 0 6px;}
+  .hero .sub{font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:clamp(16px,2.1vw,21px);
+    color:var(--ink-soft); letter-spacing:.01em; margin-bottom:22px;}
+  .hero .sub b{color:var(--teal-d); font-weight:600}
+  .thesis{font-size:17.5px; color:var(--ink); max-width:31em}
+  .thesis .hl{background:linear-gradient(transparent 62%, #F5A30055 62%); padding:0 2px}
+
+  .loopcard{background:var(--panel); border:1.5px solid var(--rule); border-radius:18px;
+    padding:20px 20px 16px; box-shadow:var(--shadow);}
+  .loopcard .cap{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px}
+  svg{display:block; width:100%; height:auto}
+
+  .mapsec{padding:14px 0 8px}
+  .map{background:var(--panel); border:1.5px solid var(--rule); border-radius:20px;
+    padding:24px 22px 16px; box-shadow:var(--shadow);
+    background-image:radial-gradient(var(--paper-2) 1px, transparent 1px);
+    background-size:18px 18px; background-position:-2px -2px;}
+  .map .head{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:4px}
+  .map h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:22px; margin:0; letter-spacing:-.01em}
+  .map .legend{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft)}
+  .agent{animation:travel 6s cubic-bezier(.7,0,.3,1) infinite}
+  @keyframes travel{0%,12%{transform:translateX(0)} 27%,40%{transform:translateX(330px)} 55%,90%{transform:translateX(660px)} 100%{transform:translateX(0)}}
+  .mapnote{font-size:14.5px; color:var(--ink-soft); margin:12px 4px 0; max-width:62em}
+
+  .section{padding:54px 0 8px}
+  .sec-head{display:flex; align-items:flex-end; gap:18px; margin-bottom:26px; flex-wrap:wrap}
+  .sec-tag{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; color:#fff;
+    background:var(--rule); border-radius:11px; padding:7px 13px; letter-spacing:.04em; line-height:1;}
+  .sec-head h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(26px,4vw,38px); letter-spacing:-.018em; margin:0}
+  .sec-head p{margin:6px 0 0; color:var(--ink-soft); font-size:16px; flex-basis:100%; max-width:48em}
+
+  .atoms{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  .atom{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:20px 18px;
+    transition:transform .18s ease, box-shadow .18s ease}
+  .atom:hover{transform:translateY(-3px); box-shadow:var(--shadow)}
+  .atom .sym{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:26px; letter-spacing:-.01em}
+  .atom .sym small{font-family:"IBM Plex Mono",monospace; font-weight:400; font-size:13px; color:var(--ink-faint); letter-spacing:.04em}
+  .atom .zh{font-weight:600; margin-top:2px; font-size:15px; color:var(--teal-d)}
+  .atom p{font-size:15px; color:var(--ink-soft); margin:9px 0 14px}
+  .chip{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:13px;
+    background:var(--panel-2); border:1px solid var(--track); border-radius:8px; padding:5px 10px; color:var(--ink)}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px}
+  .panel{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:22px 20px}
+  .panel h3{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:19px; margin:0 0 4px; letter-spacing:-.01em}
+  .panel .kq{font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint)}
+  .panel p{font-size:15px; color:var(--ink-soft); margin:10px 0}
+  .panel .vs{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+  .panel .vs > div{background:var(--panel-2); border-radius:11px; padding:12px 13px; font-size:14px}
+  .panel .vs b{display:block; font-family:"Space Grotesk",sans-serif; font-size:15px; margin-bottom:3px; color:var(--ink)}
+  .accent-l{border-left:5px solid var(--teal)}
+  .accent-a{border-left:5px solid var(--amber)}
+
+  /* formula / dark */
+  .formula{background:var(--rule); color:#fff; border-radius:18px; padding:30px 26px; margin:16px 0; text-align:center}
+  .formula .big{font-family:"IBM Plex Mono",monospace; font-size:clamp(18px,3.2vw,29px); letter-spacing:.01em; line-height:1.5}
+  .formula .big .gm{color:var(--amber)} .formula .big .tl{color:#5fd0d8}
+  .formula .rec{margin-top:14px; font-family:"IBM Plex Mono",monospace; font-size:15px; color:#C8CDD4}
+  .formula .rec b{color:var(--amber)}
+
+  /* worked steps */
+  .work{background:var(--panel); border:1.5px solid var(--rule); border-radius:18px; padding:24px 22px; margin-top:18px}
+  .work .setup{font-family:"IBM Plex Mono",monospace; font-size:14px; color:var(--ink-soft); margin-bottom:16px}
+  .steps{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .step{background:var(--panel-2); border-radius:13px; padding:16px; position:relative}
+  .step .lab{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-faint); letter-spacing:.04em}
+  .step .calc{font-family:"IBM Plex Mono",monospace; font-size:13.5px; color:var(--ink-soft); margin:6px 0 8px}
+  .step .res{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:30px}
+  .step.va .res{color:var(--teal-d)} .step.vb .res{color:var(--amber-d)}
+  .insight{margin-top:16px; font-size:15px; background:#fff; border-left:5px solid var(--amber); border-radius:0 12px 12px 0; padding:14px 16px}
+  .insight b{color:var(--amber-d)}
+  .punch{font-size:14.5px; color:var(--ink); background:var(--panel-2); border-radius:11px; padding:12px 14px; margin-top:6px}
+
+  /* next */
+  .next{display:grid; grid-template-columns:repeat(4,1fr); gap:13px; margin-top:6px}
+  .nstep{background:var(--panel); border:1.5px solid var(--rule); border-radius:14px; padding:16px}
+  .nstep .t{font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.12em; color:var(--ink-faint)}
+  .nstep .f{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:18px; margin:5px 0 5px}
+  .nstep p{margin:0; font-size:13.5px; color:var(--ink-soft)}
+
+  footer{margin-top:54px; border-top:1.5px solid var(--rule); padding:22px 0 50px}
+  footer .wrap{display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap;
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); letter-spacing:.04em}
+
+  /* quiz */
+  .q{background:var(--panel); border:1.5px solid var(--rule); border-radius:16px; padding:20px 20px 18px; margin-bottom:14px}
+  .q-head{display:flex; gap:12px; align-items:baseline; margin-bottom:14px; flex-wrap:wrap}
+  .q-num{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:13px; color:#fff; background:var(--rule); border-radius:8px; padding:5px 9px; line-height:1; flex:none}
+  .q-tag{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; color:var(--ink-faint); flex:none; align-self:center}
+  .q-text{font-size:16px; font-weight:500; color:var(--ink); flex:1 1 100%}
+  .opts{display:grid; gap:9px}
+  .opt{text-align:left; font-family:"IBM Plex Sans",sans-serif; font-size:15px; background:var(--panel-2);
+    border:1.5px solid var(--track); border-radius:10px; padding:11px 14px; cursor:pointer;
+    transition:border-color .15s,background .15s,transform .15s; color:var(--ink);
+    display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%}
+  .opt:hover:not(.locked){border-color:var(--ink); transform:translateX(3px)}
+  .opt .mark{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; flex:none}
+  .opt.locked{cursor:default}
+  .opt.ok{border-color:var(--ok); background:var(--ok-bg)} .opt.ok .mark{color:var(--ok)} .opt.ok .mark::after{content:"✓"}
+  .opt.no{border-color:var(--no); background:var(--no-bg)} .opt.no .mark{color:var(--no)} .opt.no .mark::after{content:"✗"}
+  .explain{display:none; margin-top:13px; font-size:14.5px; color:var(--ink-soft);
+    background:var(--panel-2); border-left:5px solid var(--amber); border-radius:0 11px 11px 0; padding:12px 14px}
+  .explain.show{display:block}
+  .explain b{color:var(--amber-d)}
+  .reveal-btn{font-family:"IBM Plex Mono",monospace; font-size:13px; background:var(--rule); color:#fff;
+    border:none; border-radius:9px; padding:10px 15px; cursor:pointer; letter-spacing:.03em}
+  .reveal-btn:hover{background:var(--teal-d)}
+  .ans{display:none; margin-top:14px} .ans.show{display:block}
+
+  /* L2 extra */
+  .veq{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(15px,2vw,18px); text-align:center; margin-top:12px; color:var(--ink)}
+  .veq b{color:var(--teal-d)} .veq .amb{color:var(--amber-d)}
+
+  .js .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease}
+  .js .reveal.in{opacity:1; transform:none}
+
+  @media(max-width:860px){
+    .hero .wrap{grid-template-columns:1fr; gap:26px}
+    .atoms{grid-template-columns:1fr 1fr}
+    .next{grid-template-columns:1fr 1fr}
+    .grid2,.panel .vs,.steps{grid-template-columns:1fr}
+  }
+  @media(max-width:520px){ .atoms,.next{grid-template-columns:1fr} }
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .agent{animation:none; transform:translateX(660px)}
+    .js .reveal{opacity:1; transform:none; transition:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= HERO ======================= -->
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">LLM RL · 课程笔记 02</span>
+      <h1>评估<br>好坏</h1>
+      <div class="sub"><b>L2</b> 策略 π　·　状态价值 V　·　动作价值 Q</div>
+      <p class="thesis">有了 L1 的回报 <code>G</code>(要最大化的目标),这一页造三把尺子:<span class="hl">π 是打法,V 量「状态多好」,Q 量「动作多好」</span>,再用一座桥把它们连起来:<b>V = Σ π·Q</b>。</p>
+    </div>
+
+    <div class="loopcard">
+      <div class="cap">Figure · 决策路口:V = Σ π·Q</div>
+      <svg viewBox="0 0 440 230" role="img" aria-label="状态分叉成两个动作,各有概率和Q值,加权平均成V">
+        <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0E7C86"/></marker></defs>
+        <!-- state node -->
+        <circle cx="52" cy="115" r="27" fill="#F2F3EE" stroke="#0E7C86" stroke-width="5"/>
+        <text x="52" y="123" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="22" fill="#0A5860">s</text>
+        <!-- top branch -->
+        <path d="M79,101 L250,55" fill="none" stroke="#0E7C86" stroke-width="2.6" marker-end="url(#ah)"/>
+        <text x="150" y="66" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#0A5860">π(a₁│s)=0.7</text>
+        <rect x="252" y="33" width="160" height="46" rx="11" fill="#F2F3EE" stroke="#17181C" stroke-width="2"/>
+        <text x="332" y="62" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="17" fill="#17181C">Q(s,a₁) = 8</text>
+        <!-- bottom branch -->
+        <path d="M79,129 L250,177" fill="none" stroke="#0E7C86" stroke-width="2.6" marker-end="url(#ah)"/>
+        <text x="150" y="180" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#0A5860">π(a₂│s)=0.3</text>
+        <rect x="252" y="155" width="160" height="46" rx="11" fill="#F2F3EE" stroke="#17181C" stroke-width="2"/>
+        <text x="332" y="184" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="17" fill="#17181C">Q(s,a₂) = 3</text>
+      </svg>
+      <div class="veq">V(s) = <b>0.7</b>×8 + <b>0.3</b>×3 = <span class="amb">6.5</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= VALUE MAP ======================= -->
+<section class="mapsec">
+  <div class="wrap reveal">
+    <div class="map">
+      <div class="head">
+        <h2>把价值标在地图上(策略 = 永远 →,γ=0.9)</h2>
+        <div class="legend">Vπ(s) = 从该站出发的长期期望回报</div>
+      </div>
+      <svg viewBox="0 0 920 215" role="img" aria-label="走廊每个站点标上V值">
+        <!-- V badges -->
+        <g font-family="IBM Plex Mono" font-size="14">
+          <rect x="72" y="22" width="116" height="34" rx="9" fill="#fff" stroke="#0E7C86" stroke-width="2"/>
+          <text x="130" y="44" text-anchor="middle" fill="#0A5860">Vπ(A)=8</text>
+          <rect x="402" y="22" width="116" height="34" rx="9" fill="#fff" stroke="#B97C00" stroke-width="2"/>
+          <text x="460" y="44" text-anchor="middle" fill="#B97C00">Vπ(B)=10</text>
+          <rect x="732" y="22" width="116" height="34" rx="9" fill="#fff" stroke="#17181C" stroke-width="2"/>
+          <text x="790" y="44" text-anchor="middle" fill="#17181C">Vπ(G)=0</text>
+        </g>
+        <line x1="130" y1="58" x2="130" y2="100" stroke="#C4CAC8" stroke-width="2" stroke-dasharray="2 5"/>
+        <line x1="460" y1="58" x2="460" y2="100" stroke="#C4CAC8" stroke-width="2" stroke-dasharray="2 5"/>
+        <line x1="790" y1="58" x2="790" y2="100" stroke="#C4CAC8" stroke-width="2" stroke-dasharray="2 5"/>
+        <!-- route -->
+        <line x1="130" y1="120" x2="460" y2="120" stroke="#0E7C86" stroke-width="11" stroke-linecap="round"/>
+        <line x1="460" y1="120" x2="790" y2="120" stroke="#F5A300" stroke-width="11" stroke-linecap="round"/>
+        <text x="295" y="108" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="14" fill="#0A5860">→　−1</text>
+        <text x="625" y="108" text-anchor="middle" font-family="Space Grotesk" font-weight="600" font-size="14" fill="#B97C00">→　+10</text>
+        <!-- stations -->
+        <circle cx="130" cy="120" r="22" fill="#FBFBF9" stroke="#0E7C86" stroke-width="5"/>
+        <circle cx="460" cy="120" r="22" fill="#FBFBF9" stroke="#0E7C86" stroke-width="5"/>
+        <circle cx="790" cy="120" r="26" fill="#F5A300" stroke="#17181C" stroke-width="3"/>
+        <circle cx="790" cy="120" r="13" fill="none" stroke="#FBFBF9" stroke-width="2.5"/>
+        <text x="130" y="127" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#0A5860">A</text>
+        <text x="460" y="127" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#0A5860">B</text>
+        <text x="790" y="127" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#17181C">G</text>
+        <text x="130" y="172" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#535862">起点</text>
+        <text x="790" y="172" text-anchor="middle" font-family="IBM Plex Mono" font-size="12.5" fill="#17181C">终点</text>
+        <g class="agent"><circle cx="130" cy="120" r="11" fill="#17181C"/><circle cx="130" cy="120" r="4" fill="#F5A300"/></g>
+      </svg>
+      <p class="mapnote"><b>V 就是地图上每个站点的「身价」。</b>越靠近终点身价越高:B 一步到 +10 → <b>V(B)=10</b>;A 要先吃 −1 再到 B → <b>V(A)</b> = −1 + 0.9×V(B) = −1 + 0.9×10 = <b>8</b>。同一张地图,换个策略(比如老往回走),这些数字会全变小——所以 V 永远挂在某个策略 π 上。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= π ======================= -->
+<section class="section" id="pi">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">①</span><h2>策略 π(a│s)</h2>
+      <p>agent 的「打法」:在每个状态,给每个动作一个概率。它是<b>要训练的对象</b>;V/Q 只是评估它好坏的尺子。</p>
+    </div>
+    <div class="atoms reveal">
+      <div class="atom">
+        <div class="sym">确定性 <small>deterministic</small></div>
+        <div class="zh">一个动作概率 1</div>
+        <p>如「永远 →」:π(→│s)=1,其余 0。打法固定。</p>
+        <span class="chip">π(→│B)=1</span>
+      </div>
+      <div class="atom">
+        <div class="sym">随机 <small>stochastic</small></div>
+        <div class="zh">动作上的一个分布</div>
+        <p>如 π(→│B)=0.7, π(←│B)=0.3。和为 1。</p>
+        <span class="chip">Σ_a π(a│s)=1</span>
+      </div>
+      <div class="atom">
+        <div class="sym">π_θ <small>parameterized</small></div>
+        <div class="zh">由神经网络决定</div>
+        <p>θ=网络权重。<b>训练 = 调 θ,让 π_θ 的轨迹回报更高</b>(=policy gradient)。</p>
+        <span class="chip">θ = NN 权重</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= V & Q ======================= -->
+<section class="section" id="vq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">②③</span><h2>V 与 Q:两把尺子</h2>
+      <p>都用 L1 的回报 G 取期望(还记得 <code>│</code> = 给定吗)。区别只在右边的前提:V 只给状态,Q 多固定了第一个动作。</p>
+    </div>
+
+    <div class="grid2">
+      <div class="panel accent-l reveal">
+        <div class="kq">state value</div>
+        <h3>V<sup>π</sup>(s) = E[ G │ s ]</h3>
+        <p>「<b>给定从 s 出发</b>、之后一直按 π 走,回报 G 平均是多少」。评价一个<b>状态</b>有多好。</p>
+        <div class="vs">
+          <div><b>V(B) = 10</b>10 + 0.9×V(G) = 10 + 0</div>
+          <div><b>V(A) = 8</b>−1 + 0.9×V(B) = −1 + 9</div>
+        </div>
+      </div>
+      <div class="panel accent-a reveal">
+        <div class="kq">action value</div>
+        <h3>Q<sup>π</sup>(s,a) = E[ G │ s, a ]</h3>
+        <p>「在 s <b>先强制做 a</b>,之后再按 π 走,平均回报」。评价一个<b>动作</b>有多好(右边是联合前提 s,a)。</p>
+        <div class="vs">
+          <div><b>Q(B,→) = 10</b>+10 + 0.9×V(G)</div>
+          <div><b>Q(B,←) = 6.2</b>−1 + 0.9×V(A) = −1+7.2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel reveal" style="margin-top:16px">
+      <div class="kq">公式拆解 · 每个数字对应哪个字母</div>
+      <h3 style="font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:19px; margin-top:6px">V(s) = <span style="color:var(--red)">r</span> + <span style="color:var(--teal-d)">γ</span> × V(s′)</h3>
+      <p style="margin:4px 0 14px">价值 = <span style="color:var(--red)">即时奖励</span> + <span style="color:var(--teal-d)">折扣</span> × 落地状态的价值</p>
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:14.5px; line-height:2.1; background:var(--panel-2); border-radius:12px; padding:14px 16px; overflow-x:auto">
+        ① V(B) = <b style="color:var(--red)">10</b> + <b style="color:var(--teal-d)">0.9</b> × V(G)=0　=　<b>10</b><br>
+        ② V(A) = <b style="color:var(--red)">−1</b> + <b style="color:var(--teal-d)">0.9</b> × V(B)=10　=　−1+9　=　<b>8</b>
+      </div>
+      <div style="font-size:13px; color:var(--soft); margin-top:10px">
+        <b style="color:var(--red)">红 = 即时奖励 r</b>(B选→ 得 +10,A选→ 得 −1)　·　<b style="color:var(--teal-d)">青 = 折扣 γ=0.9</b>　·　V(·) = 落地状态价值(终点 V(G)=0,①的 V(B)=10 喂给 ②)
+      </div>
+    </div>
+
+    <div class="punch reveal" style="margin-top:16px; border-left:5px solid var(--teal); border-radius:0 11px 11px 0">
+      <b style="color:var(--teal-d)">一句话记区别:</b> V 问「在这个站,接下来平均能拿多少」;Q 问「在这个站<b>先走这一步</b>,接下来平均能拿多少」。Q 比 V 多固定了「第一个动作」。
+    </div>
+  </div>
+</section>
+
+<!-- ======================= BRIDGE ======================= -->
+<section class="section" id="bridge">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">④</span><h2>桥:V 是 Q 的策略加权平均</h2>
+      <p>这条把 π、V、Q 三者锁在一起,是 L2 的命根,也是 L3 优势 A=Q−V 的地基。</p>
+    </div>
+
+    <div class="formula reveal">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:#9aa0a8; margin-bottom:10px">Bellman 期望方程 · V 由 Q 表达</div>
+      <div class="big">V<sup>π</sup>(s) = <span class="gm">Σ</span><sub style="font-size:.5em">a</sub> <span class="tl">π(a│s)</span> · <span class="gm">Q<sup>π</sup>(s,a)</span></div>
+      <div class="rec">V = 「各动作的 Q,按策略概率 <b>加权平均</b>」</div>
+    </div>
+
+    <div class="panel reveal" style="margin-top:14px; border-left:5px solid var(--teal)">
+      <div class="kq">这就是 Bellman 期望方程</div>
+      <p style="margin-top:8px">桥是 Bellman 期望方程的「<b>V 由 Q</b>」式。把 Q 展开 <code>Q(s,a)=Σ p(s′,r│s,a)[r+γV(s′)]</code> 代回去,就得到<b>递归版</b> <code>V(s)=Σ_a π(a│s) Σ p[r+γV(s′)]</code>——也就是 corridor 里 <code>V(s)=r+γV(s′)</code> 的完整版。<b>同一个方程,两张脸。</b></p>
+      <div class="vs">
+        <div><b>桥(本节)· V 由 Q</b>V = Σ_a π(a│s)·Q(s,a)</div>
+        <div><b>递归版 · V 由 V</b>V(s) = r + γV(s′)(确定性简化)</div>
+      </div>
+      <p style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-faint); margin-top:8px">📖 S&amp;B §3.5 · Silver RL Lec2(Bellman 期望方程 4 式:V↔Q / Q↔V / V↔V / Q↔Q)</p>
+    </div>
+
+    <div class="work reveal">
+      <div class="setup">动手算 2 · 某状态 s 有两动作,已知 Q(s,a₁)=8, Q(s,a₂)=3(抽象数值,不绑 corridor)</div>
+      <div class="steps">
+        <div class="step va">
+          <div class="lab">(1) 随机策略 π=0.7 / 0.3</div>
+          <div class="calc">V = 0.7×8 + 0.3×3</div>
+          <div class="res">6.5</div>
+        </div>
+        <div class="step vb">
+          <div class="lab">(2) 贪心策略 π(a₁│s)=1</div>
+          <div class="calc">V = 1×8 + 0×3</div>
+          <div class="res">8</div>
+        </div>
+      </div>
+      <div class="insight">两题对比一眼看穿:<b>同一个状态、同一组 Q,换策略 V 就变(6.5 → 8)。</b>所以 V/Q 永远带上标 π——价值是「相对某个打法」而言的。RL 的终极目标,就是找让 V 最大的那个 π。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= QUIZ ======================= -->
+<section class="section" id="quiz">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">Q</span><h2>随堂自测</h2>
+      <p>点选项即时判对错,下面展开为什么。算题点「看答案」。corridor 题默认策略 = 永远 →,γ=0.9。</p>
+    </div>
+    <div class="reveal">
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q1</span><span class="q-tag">V 的定义</span>
+          <span class="q-text"><code>Vπ(s)</code> 是什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>当前这一步的即时奖励</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>给定从 s 出发、按 π 走,回报 G 的期望</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>从 s 能拿到的最大可能回报</span><span class="mark"></span></button>
+        </div>
+        <div class="explain"><code>Vπ(s)=E[G│s]</code>——是「平均」回报(期望),不是即时奖励,也不是最大值。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q2</span><span class="q-tag">V vs Q</span>
+          <span class="q-text">Q(s,a) 比 V(s) 多了什么?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="true"><span>多固定了「第一个动作 a」</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>多乘了一个折扣 γ</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>没区别,只是换了字母</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">V 只给状态前提;Q 的右边是联合前提 <code>s,a</code>——先强制做 a,再按 π 走。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q3</span><span class="q-tag">桥</span>
+          <span class="q-text">V(s) 怎么由各动作的 Q 算出来?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>V = max_a Q(s,a)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>V = Σ_a π(a│s)·Q(s,a)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>V = Σ_a Q(s,a)(直接相加)</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">按<b>策略概率加权</b>平均(不是直接相加,也不是取最大——取最大那是最优价值 V*,后面才讲)。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q4</span><span class="q-tag">corridor</span>
+          <span class="q-text">永远→、γ=0.9 时,<code>V(A)</code> = ?(B 一步到终点 +10)</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>−1(只看眼前那步)</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>8</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>10</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">V(A) = −1 + 0.9×V(B) = −1 + 0.9×10 = <b>8</b>。即时 −1,但走在通往 +10 的路上,身价仍是 8。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q5</span><span class="q-tag">上标 π</span>
+          <span class="q-text">同一个状态,换一个策略,V 会变吗?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="true"><span>会——价值永远相对某个策略</span><span class="mark"></span></button>
+          <button class="opt" data-correct="false"><span>不会——状态固定 V 就固定</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">这正是要写上标 <code>Vπ</code> 的原因。好打法身价高,烂打法身价低。RL 就是找让 V 最大的 π。</div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q6</span><span class="q-tag">动手算 · 桥</span>
+          <span class="q-text">某状态 Q(a₁)=6, Q(a₂)=1,策略 π(a₁)=0.8, π(a₂)=0.2。求 V。先自己算再点开。</span></div>
+        <button class="reveal-btn">看答案 ▸</button>
+        <div class="ans">
+          <div class="work" style="margin-top:0">
+            <div class="steps">
+              <div class="step va"><div class="lab">V = Σ π·Q</div><div class="calc">= 0.8×6 + 0.2×1 = 4.8 + 0.2</div><div class="res">5.0</div></div>
+              <div class="step vb"><div class="lab">若改贪心 π(a₁)=1</div><div class="calc">= 1×6</div><div class="res">6</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="q">
+        <div class="q-head"><span class="q-num">Q7</span><span class="q-tag">记号</span>
+          <span class="q-text"><code>v_π(s)</code>(书里小写)和 <code>Vπ(s)</code>(代码里大写)?</span></div>
+        <div class="opts">
+          <button class="opt" data-correct="false"><span>不同的东西,别搞混</span><span class="mark"></span></button>
+          <button class="opt" data-correct="true"><span>同一个,大小写只是流派差异</span><span class="mark"></span></button>
+        </div>
+        <div class="explain">Sutton&amp;Barto 用小写 <code>v_π / q_π</code>;深度 RL/代码常用大写 <code>V / Q</code>。含义一样。</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================= NEXT ======================= -->
+<section class="section" id="next">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">↳</span><h2>下一站 · L3 优势</h2>
+      <p>有了 V 和 Q,只差一步就到 policy gradient 的核心信号。</p>
+    </div>
+    <div class="next reveal">
+      <div class="nstep"><div class="t">ADVANTAGE</div><div class="f">A = Q − V</div><p>这个动作比该状态的平均好多少。</p></div>
+      <div class="nstep"><div class="t">BASELINE</div><div class="f">V 当基线</div><p>减掉 V → 只奖励「超出平均」的动作。</p></div>
+      <div class="nstep"><div class="t">ZERO-MEAN</div><div class="f">E[A]=0</div><p>优势按策略加权为 0 → 方差小、训练稳。</p></div>
+      <div class="nstep"><div class="t">→ PPO</div><div class="f">∇logπ·A</div><p>这就是策略梯度的信号,PPO 的地基。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>course · LLM RL → PPO → GRPO → verl/slime</span>
+    <span>教材 · Sutton &amp; Barto 2nd ed · §3.5–3.6</span>
+    <span>本页 · L2 策略 π / 价值 V / 动作价值 Q</span>
+  </div>
+</footer>
+
+<script>
+  document.documentElement.classList.add('js');
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  document.querySelectorAll('.q .opt').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const q=btn.closest('.q'); if(q.classList.contains('answered'))return;
+      q.classList.add('answered');
+      q.querySelectorAll('.opt').forEach(o=>{o.classList.add('locked'); if(o.dataset.correct==='true')o.classList.add('ok');});
+      if(btn.dataset.correct!=='true')btn.classList.add('no');
+      const ex=q.querySelector('.explain'); if(ex)ex.classList.add('show');
+    });
+  });
+  document.querySelectorAll('.reveal-btn').forEach(b=>{
+    b.addEventListener('click',()=>{const a=b.nextElementSibling; a.classList.toggle('show'); b.textContent=a.classList.contains('show')?'收起答案 ▾':'看答案 ▸';});
+  });
+</script>
+</body>
+</html>
