@@ -216,6 +216,7 @@
         <div><b>旧估计</b>V(sₜ)——走之前对价值的猜测</div>
         <div><b>新估计 = TD target</b>rₜ + γV(sₜ₊₁)——看到真实 r 和下一格后的更好猜测</div>
       </div>
+      <p style="margin-top:10px"><b>关键:新旧两个估计,估的是同一个 V(sₜ)</b>——所以相减(δ)才有意义。<code>V(sₜ₊₁)</code> 只是新估计里的<b>零件</b>(bootstrap:用 critic 对下一格的估计),<b>不是它的估计对象</b>;也因为这零件本身是估计,TD target 自带估计成分 → <b>TD 有偏</b>(对比蒙特卡洛用真实 G 无偏)。更精确:新估计带了实际动作 aₜ,其实是 <code>Q(sₜ,aₜ)</code> 的一次估计,于是 δ = Q − V = A。</p>
       <p style="margin-top:10px"><code>δ = 新估计 − 旧估计</code> = 旧猜测错了多少。核心是 <b>bootstrapping</b>:不等结局、走一步就用「自己下一步的估计」更新;对比<b>蒙特卡洛</b>要等整局结束用真实回报 G(无偏但慢、方差大)。</p>
       <p style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--faint); margin-top:8px">📖 TD 学习是 Sutton 1988 的奠基贡献;δ 公式见 S&amp;B §11.1 p.258</p>
     </div>
