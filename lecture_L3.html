@@ -217,7 +217,7 @@
         <div><b>新估计 = TD target</b>rₜ + γV(sₜ₊₁)——看到真实 r 和下一格后的更好猜测</div>
       </div>
       <p style="margin-top:10px"><b>关键:新旧两个估计,估的是同一个 V(sₜ)</b>——所以相减(δ)才有意义。<code>V(sₜ₊₁)</code> 只是新估计里的<b>零件</b>(bootstrap:用 critic 对下一格的估计),<b>不是它的估计对象</b>;也因为这零件本身是估计,TD target 自带估计成分 → <b>TD 有偏</b>(对比蒙特卡洛用真实 G 无偏)。更精确:新估计带了实际动作 aₜ,其实是 <code>Q(sₜ,aₜ)</code> 的一次估计,于是 δ = Q − V = A。</p>
-      <p style="margin-top:10px"><code>δ = 新估计 − 旧估计</code> = 旧猜测错了多少。核心是 <b>bootstrapping</b>:不等结局、走一步就用「自己下一步的估计」更新;对比<b>蒙特卡洛</b>要等整局结束用真实回报 G(无偏但慢、方差大)。</p>
+      <p style="margin-top:10px"><code>δ = 新估计 − 旧估计</code> = 旧猜测错了多少。核心是 <b>bootstrapping(自举:用自己的估计去更新估计)</b>——不等结局、走一步就用「自己下一步的估计」<code>γV(sₜ₊₁)</code> 当后续代理来更新;对比<b>蒙特卡洛</b>要等整局结束用真实回报 G(无偏但慢、方差大)。<b>用估计喂估计</b> = 快/能在线/低方差,但<b>有偏</b>(错误会沿链传播)。</p>
       <p style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--faint); margin-top:8px">📖 TD 学习是 Sutton 1988 的奠基贡献;δ 公式见 S&amp;B §11.1 p.258</p>
     </div>
 
@@ -243,13 +243,55 @@
 <!-- ③ policy gradient -->
 <section class="section" id="pg">
   <div class="wrap">
-    <div class="sec-head reveal"><span class="sec-tag">③</span><h2>策略梯度:照着 A 推 π</h2>
+    <div class="sec-head reveal"><span class="sec-tag">③</span><h2>策略梯度 (g):照着 A 推 π</h2>
       <p>把 A 当权重,乘上 <code>∇logπ</code>,就是更新策略的梯度。一句话:<b>好动作概率抬高,差动作压低</b>。</p></div>
     <div class="src reveal"><span>📄 <b>GAE</b> 式(9) p.3</span><span>📄 <b>Sutton-PG-1999</b>(策略梯度定理来源)</span></div>
 
     <div class="formula reveal">
       <div class="big">ĝ = E[ <span class="a">Â(s,a)</span> · ∇<sub style="font-size:.55em">θ</sub> log π<sub style="font-size:.55em">θ</sub>(a│s) ]</div>
       <div class="rec">A&gt;0 → 把 logπ(a│s) 往上推(<span style="color:#62c98c">多做</span>);A&lt;0 → 往下推(<span style="color:#ff9d7a">少做</span>)</div>
+      <div class="rec" style="font-size:13px; opacity:.82">ĝ、Â 头上的帽子 ̂ = <b style="color:#fff">采样估计</b>:真梯度 g=∇J (g 即 gradient)、真优势 A 都算不动,用一批样本的平均顶替</div>
+    </div>
+
+    <div class="insight reveal" style="margin-top:16px;">
+      <b>大白话拆解：策略梯度与 PyTorch 链式求导是怎么配合的？</b><br>
+      <p style="margin-top:8px; margin-bottom:8px">在深度学习中，<b>公式里的 <code>π_θ</code> 就是神经网络大模型 (Model) 本身</b>，<code>θ</code> 就是模型里的参数矩阵。</p>
+      <p style="margin-top:0px; margin-bottom:8px"><b>最大痛点：</b>环境是黑盒不可导的。模型吐出动作，环境给奖励，你没法对环境的黑盒奖励规则直接做“链式求导”。</p>
+      <p style="margin-top:0px; margin-bottom:8px"><b>解法（差值作为链式求导的起点）：</b>绕开对环境求导。跑完环境算出 <b>差值（优势 A）</b>，把它当成一个“外力推子系数”，乘在大模型的输出概率上，人为构造出一个伪损失（Surrogate Loss）。</p>
+<div class="code" style="margin:8px 0;">
+<span class="cm"># 1. 跑完环境黑盒，算出动作的差值 A (比如 A=+3)</span><br>
+<span class="cm"># 此时 A 已经是一个固定的标量系数，跟网络参数无关</span><br>
+A = calculate_advantage()<br>
+<br>
+<span class="cm"># 2. 构造代理损失 (Surrogate Loss)</span><br>
+<span class="cm"># pi_theta 是大模型，输出在此 prompt 下选动作 a 的概率</span><br>
+<span class="cm"># 加负号是为了配合 PyTorch 永远做“梯度下降”的底层逻辑</span><br>
+loss = - (A * torch.log(pi_theta(a|s)))<br>
+<br>
+<span class="cm"># 3. 链式求导引擎启动的瞬间！</span><br>
+loss.backward()<br>
+<span class="cm"># 此时，差值 A 站在链式法则的第一棒：</span><br>
+<span class="cm"># 作为系数，去放大或缩小传回大模型深处的偏导数力度。</span>
+</div>
+    </div>
+
+    <div class="panel reveal" style="border-left:5px solid var(--amber); margin-top:14px">
+      <div class="kq">为什么 ∇logπ·A 就是梯度?· log-derivative trick(4 步)</div>
+      <p style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--soft); margin:9px 0 0; line-height:1.85"><b style="color:var(--ink)">记号速查:</b> <b>J(θ)</b>=目标(策略的平均回报,要最大化)· <b>θ</b>=策略参数(网络权重)· <b>τ</b>=一条轨迹 · <b>R(τ)</b>=该轨迹回报 · <b>E</b>=期望(平均)· <b>∇θ</b>=对 θ 求梯度 · <b>̂(hat)</b>=采样估计</p>
+      <div class="vs" style="grid-template-columns:1fr; margin-top:12px">
+        <div><b>① 目标</b>最大化 <code>J(θ)=E_{τ~πθ}[R(τ)]</code>(τ=一条轨迹,R=它的回报)。</div>
+        <div><b>② log 求导技巧</b>恒等式 <code>∇θ P = P·∇θ logP</code> → <code>∇θ J = E_τ[∇θ logP(τ)·R(τ)]</code>。把「对所有轨迹求和」(算不动)变成「能采样的期望」。</div>
+        <div><b>③ 环境项消失 → model-free</b><code>logP(τ)=logρ(s₀)+Σ[logπθ(aₜ│sₜ)+logP(sₜ₊₁│sₜ,aₜ)]</code>;对 θ 求导,环境项(起始分布 ρ、转移 P)不含 θ → 全为 0,只剩 <code>∇θ logP = Σ ∇θ logπθ(aₜ│sₜ)</code>。<b>不需要环境模型!</b></div>
+        <div><b>④ 回报 → 优势</b>R(τ) 换成「该动作之后的回报」(因果性)再减基线 V(不改期望、降方差)→ <code>∇θ J = E[ Σ ∇logπθ(aₜ│sₜ)·A(sₜ,aₜ) ]</code>。</div>
+      </div>
+      <p style="margin-top:11px"><b>直觉:</b><code>∇logπ(a│s)</code> = 「把动作 a 概率调高」的那个 θ 方向;乘上 <b>A</b> → A&gt;0 顺着推(调高)、A&lt;0 反着推(调低),幅度按好坏。<b>为什么是 log?</b> 正是这个 log 把 ∇P 变成「概率 × score」,梯度才能从采样里估出来。</p>
+    </div>
+
+    <div class="panel reveal" style="border-left:5px solid var(--teal); margin-top:14px">
+      <div class="kq">梯度是手段,优化才是目的</div>
+      <p style="margin-top:8px">π 不是「算」出来的,是「训」出来的——πθ 是神经网络,只能照梯度一步步挪 θ:</p>
+      <div class="mono" style="background:var(--panel-2); border-radius:11px; padding:13px 15px; font-size:13.5px; line-height:1.9; margin-top:8px; overflow-x:auto">目标 J(θ)=E[回报]　→　找梯度 ∇J=E[∇logπ·A]　→　梯度上升 <b>θ ← θ + α∇J</b>　→　π 变好　→　反复</div>
+      <p style="margin-top:10px">是<b>上升</b>(+)因为要<b>最大化</b>回报(代码里常写 <code>loss=−J</code> 做梯度下降,等价)。<b>π 是被优化的对象,不是被求解的结果。</b></p>
     </div>
 
     <div class="quote reveal">
@@ -257,15 +299,20 @@
       <div class="who">— Schulman et al., GAE (ICLR 2016), p.2</div>
     </div>
 
-    <div class="insight reveal"><b>为什么用 A 不用 raw return / Q?</b> 用 Q,高价值状态里所有动作权重都大 → 噪声大;减掉基线 V 变成 A(零均值)→ 只奖励「超出平均」的动作 → <b>方差小、训练稳</b>。这就是 baseline 的全部意义,也是 actor-critic / PPO / GRPO 的共同地基。</div>
+    <div class="insight reveal">
+      <b>更新权重系数：为什么用优势 A，而不用原始回报（Raw Return, G）或动作价值（Q）？</b><br>
+      <p style="margin-top:8px; margin-bottom:8px">回顾前面两节：原始回报（Raw Return，记作 G）是这条轨迹实际上拿到的总分；动作价值（Q）是在这个状态下选这个动作的期望总分。现在我们要决定某个动作的“更新力度”。</p>
+      <p style="margin-top:8px; margin-bottom:8px">想象一个游戏，即使你乱按，随便走走也能拿 +100 分的高分（比如超级玛丽吃了无敌星，或者 LLM 遇到一个极为简单的 Prompt 如“1+1=？”）。如果你直接用原始分数 G 或 Q 作为梯度权重，那么所有的动作（不管是好动作还是相对不那么完美的动作）对应的概率全都会被大幅推高。算法在这个状态下会被绝对的高分蒙蔽，无法精细区分动作的好坏。</p>
+      <p style="margin-top:0px; margin-bottom:0px">减掉基线 V（例如该状态的平均分是 102）变成优势 A（零均值）：如果动作 a 拿了 105 分，优势是 +3（好于平均，往上推）；动作 b 拿了 100 分，优势是 -2（低于平均，往下压）。这样就能<b>只奖励「相对该状态超出平均水平」的动作</b>。这就是 baseline（基线）的全部意义，它避免了模型被自带高分的简单状态带偏，使得<b>方差小、训练稳</b>。这也是 actor-critic / PPO / GRPO 的共同地基。</p>
+    </div>
   </div>
 </section>
 
 <!-- ④ in code -->
 <section class="section" id="code">
   <div class="wrap">
-    <div class="sec-head reveal"><span class="sec-tag">④</span><h2>落到代码:cleanrl 里就这几行</h2>
-      <p>上面的 δ、GAE、A·∇logπ,在真实 PPO 实现里是连续几行。先认 advantage 那段。</p></div>
+    <div class="sec-head reveal"><span class="sec-tag">④</span><h2>落到代码：CleanRL 里的实现</h2>
+      <p>CleanRL（<code>code/cleanrl/</code>）是一个极其清晰的单文件 RL 算法库，被广泛作为阅读 PPO 源码的标准入口。上面的 δ、GAE、A·∇logπ，在真实 PPO 实现（<code>cleanrl/ppo.py</code>）里就是连续的几行代码。</p></div>
     <div class="src reveal"><span>💻 <b>cleanrl/ppo.py:229–231</b>(GAE)</span><span>💻 <b>:251–252, 265–267</b>(A→loss)</span></div>
 
     <div class="code reveal">
@@ -274,6 +321,10 @@
 <span class="ln">230</span>  advantages[t] = lastgaelam = delta + gamma * <span class="hl">gae_lambda</span> * nextnonterminal * lastgaelam  <span class="cm"># ← GAE(λ) 递推</span><br>
 <span class="ln">231</span>  returns = advantages + values                                          <span class="cm"># ← target for critic</span><br>
 <br>
+<div class="rec" style="font-size:12.5px; opacity:.85; border-left:3px solid var(--soft); padding-left:8px; margin:4px 0 16px 0; background:rgba(0,0,0,0.1); padding:8px;">
+  <b style="color:#fff">💡 为什么代码里多了一个 `nextnonterminal`？</b><br>
+  它是一个 Bool 标志位（没结束=1，游戏结束=0）。如果在当前步游戏结束了，未来的预期回报必须是 0。但神经网络还是会对下一个“废状态”瞎猜出一个 V(s') 的值，所以必须强制乘上这个标志位把它抹掉（清零），作为工程实现上的边界防御。
+</div>
 <span class="cm"># --- advantage 当权重,推 logπ(ppo.py:251–267)---</span><br>
 <span class="ln">251</span>  logratio = newlogprob - b_logprobs[mb_inds]<br>
 <span class="ln">252</span>  ratio = logratio.exp()                         <span class="cm"># ← π_new/π_old(PPO 的 ratio,下一课 L4)</span><br>
@@ -295,7 +346,16 @@
       <div class="big">Â<sup style="font-size:.6em">GAE</sup><sub style="font-size:.55em">t</sub> = Σ<sub style="font-size:.55em">l≥0</sub> (γλ)<sup style="font-size:.6em">l</sup> δ<sub style="font-size:.55em">t+l</sub></div>
       <div class="rec"><b>λ=0</b> → Â=δ(一步,低方差/有偏)　|　<b>λ=1</b> → Â=Σγ^l r − V(蒙特卡洛,无偏/高方差)</div>
     </div>
-    <div class="insight reveal">cleanrl 默认 <code>gae_lambda=0.95</code>(ppo.py:51)——靠近 1 偏向低偏差,但留一点方差控制。<b>λ 就是 advantage 估计的"看多远"旋钮。</b></div>
+    <div class="insight reveal" style="margin-top:16px;">
+      <b>大白话拆解：GAE（广义优势估计）到底在干嘛？</b><br>
+      <p style="margin-top:8px; margin-bottom:8px">算优势 A 时，我们面临一个两难：</p>
+      <ul style="margin-top:4px; margin-bottom:8px; padding-left:20px;">
+        <li><b>走 1 步就靠 Critic 脑补未来（单步 TD）：</b>没啥随机性（低方差），但如果 Critic 是个臭棋篓子，估算就全错了（高偏差 / 瞎指挥）。</li>
+        <li><b>一直走到游戏结束看真实得分（蒙特卡洛）：</b>完全真实（无偏），但如果走了一万步最后手滑死了，第一步的好动作也会被冤枉，随机噪音极大（高方差）。</li>
+      </ul>
+      <p style="margin-top:0px; margin-bottom:8px"><b>GAE 的神仙解法（我全都要）：</b>算一个“走1步的A”，算一个“走2步的A”……一直算到“走到死”的A。然后用参数 <b>λ (Lambda)</b> 把它们<b>加权平均</b>起来！</p>
+      <p style="margin-top:0px; margin-bottom:0px"><b>λ 就是那个“看多远”的旋钮：</b>λ=0 就是极端 1（全靠脑补），λ=1 就是极端 2（全靠真实）。PPO 和 CleanRL 标配设为 <code>0.95</code>，在“相信脑补”和“相信真实”之间找到了完美平衡，让算出来的 A 既准又稳。</p>
+    </div>
   </div>
 </section>
 
